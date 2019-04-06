@@ -1,3 +1,6 @@
 [submodule "dependencies/bmf"]
 	path = dependencies/bmf
 	url = git@github.com:kopaka1822/BinaryMeshFormat.git
+[submodule "dependencies/json"]
+	path = dependencies/json
+	url = https://github.com/nlohmann/json.git

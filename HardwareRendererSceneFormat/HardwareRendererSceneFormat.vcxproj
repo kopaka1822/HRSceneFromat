@@ -116,6 +116,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\include\hrsf\Camera.h" />
+    <ClInclude Include="..\include\hrsf\Environment.h" />
     <ClInclude Include="..\include\hrsf\Light.h" />
     <ClInclude Include="..\include\hrsf\Material.h" />
     <ClInclude Include="..\include\hrsf\SceneFormat.h" />

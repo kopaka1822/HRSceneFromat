@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <array>
 
 namespace hrsf
 {
@@ -8,7 +9,7 @@ namespace hrsf
 		std::string ambient;
 		std::string diffuse;
 		std::string specular;
-		std::string transparency; // extra map if transparency was not stored in diffuse map
+		std::string occlusion; // extra map if transparency was not stored in diffuse map
 	};
 
 	// material data that is aligned to 16 byte for the graphics card
@@ -20,14 +21,29 @@ namespace hrsf
 			Reflection = 1,
 		};
 
-		float ambient[3];
+		std::array<float, 3> ambient;
 		float roughness;
-		float diffuse[3];
-		float transparency;
-		float specular[3];
+		std::array<float, 3> diffuse;
+		float occlusion;
+		std::array<float, 3> specular;
 		float gloss; // glossiness for specular reflection
-		float emission[3];
+		std::array<float, 3> emission;
 		int flags; // bitflags from Flags enum
+
+		static const MaterialData& Default()
+		{
+			static const MaterialData d = {
+				1.0f, 1.0f, 1.0f,
+				1.0f,
+				1.0f, 1.0f, 1.0f,
+				1.0f,
+				0.0f, 0.0f, 0.0f,
+				50.0f,
+				0.0f, 0.0f, 0.0f,
+				None
+				};
+			return d;
+		};
 	};
 
 	struct Material
