@@ -1,0 +1,3 @@
+[submodule "dependencies/bmf"]
+	path = dependencies/bmf
+	url = git@github.com:kopaka1822/BinaryMeshFormat.git
