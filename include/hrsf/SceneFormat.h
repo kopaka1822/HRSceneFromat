@@ -42,6 +42,11 @@ namespace hrsf
 		static Environment loadEnvironment(const json& j);
 		static Light loadLight(const json& j);
 
+		/// \brief retrieves the value from the json. if the json does not contain the value
+		/// the default value is returned instead
+		template<class T>
+		static T getOrDefault(const json& j, T defaultValue);
+
 		/// \brief retrieves directory of the specified filename. works with / and \.
 		/// data/filename.txt => data/
 		static std::string getDirectory(const std::string& filename);
@@ -196,8 +201,13 @@ namespace hrsf
 				j["gloss"] = m.data.gloss;
 			if (m.data.emission != MaterialData::Default().emission)
 				j["emission"] = m.data.emission;
-			if (m.data.flags != MaterialData::Default().flags)
-				j["flags"] = m.data.flags;
+			
+			// write flags as booleans
+			const bool reflection = (m.data.flags & MaterialData::Reflection) != 0;
+			if ((m.data.flags & MaterialData::Reflection != 0) != reflection)
+				j["reflection"] = reflection;
+			
+				
 
 			res.push_back(std::move(j));
 		}
@@ -281,18 +291,42 @@ namespace hrsf
 		mat.name = j["name"].get<std::string>();
 
 		// textures
+		mat.textures.diffuse = getOrDefault(j["diffuseTex"], std::string());
+		mat.textures.ambient = getOrDefault(j["ambientTex"], std::string());
+		mat.textures.specular = getOrDefault(j["specularTex"], std::string());
+		mat.textures.occlusion = getOrDefault(j["occlusionTex"], std::string());
+
+		// data
+		mat.data.diffuse = j["diffuse"].get<std::array<float, 3>>();
+		mat.data.roughness = getOrDefault(j["roughness"], MaterialData::Default().roughness);
+		mat.data.occlusion = getOrDefault(j["occlusion"], MaterialData::Default().occlusion);
+		mat.data.specular = getOrDefault(j["specular"], MaterialData::Default().specular);
+		mat.data.gloss = getOrDefault(j["gloss"], MaterialData::Default().gloss);
+		mat.data.emission = getOrDefault(j["emission"], MaterialData::Default().emission);
+		
+		mat.data.flags = 0;
+
+		// reflection?
+		if(getOrDefault(j["reflection"], (MaterialData::Default().flags & MaterialData::Reflection) != 0))
+			mat.data.flags |= MaterialData::Reflection;
+
 		return mat;
 	}
 
 	inline Camera SceneFormat::loadCamera(const json& j)
 	{
 		Camera cam;
-		auto strType = j["type"].get<std::string>();
+		const auto strType = j["type"].get<std::string>();
 		if (strType == "Pinhole")
 			cam.type = Camera::Pinhole;
 		else throw std::runtime_error("unknown camera type " + strType);
 
 		cam.position = j["position"].get<std::array<float, 3>>();
+		cam.direction = j["direction"].get<std::array<float, 3>>();
+		cam.fov = j["fov"].get<float>();
+		cam.near = getOrDefault(j["near"], Camera::Default().near);
+		cam.far = getOrDefault(j["far"], Camera::Default().far);
+		cam.up = getOrDefault(j["up"], Camera::Default().up);
 
 		return cam;
 	}
@@ -300,6 +334,10 @@ namespace hrsf
 	inline Environment SceneFormat::loadEnvironment(const json& j)
 	{
 		Environment env;
+		env.color = j["color"].get<std::array<float, 3>>();
+
+		env.map = getOrDefault(j["map"], std::string());
+		env.ambient = getOrDefault(j["ambient"], std::string());
 
 		return env;
 	}
@@ -307,8 +345,31 @@ namespace hrsf
 	inline Light SceneFormat::loadLight(const json& j)
 	{
 		Light l;
+		const auto strType = j["type"].get<std::string>();
+		if(strType == "Point")
+		{
+			l.type = Light::Point;
+			l.position = j["position"].get<std::array<float, 3>>();
+			l.linearFalloff = j["linearFalloff"].get<float>();
+			l.quadFalloff = j["quadFalloff"].get<float>();
+		}
+		else if(strType == "Directional")
+		{
+			l.type = Light::Directional;
+			l.direction = j["direction"].get<std::array<float, 3>>();
+		}
+		else throw std::runtime_error("invalid light type " + strType);
+
+		l.color = j["color"].get<std::array<float, 3>>();;
 
 		return l;
+	}
+
+	template <class T>
+	T SceneFormat::getOrDefault(const json& j, T defaultValue)
+	{
+		if (j.empty()) return defaultValue;
+		return j.get<T>();
 	}
 
 	inline std::string SceneFormat::getDirectory(const std::string& filename)

@@ -14,11 +14,11 @@ namespace hrsf
 		int type; // light type
 		union
 		{
-			float position[3]; // for point light
-			float direction[3]; // fir directional light
+			std::array<float, 3> position; // for point light
+			std::array<float, 3> direction; // fir directional light
 		};
 		
-		float color[3];
+		std::array<float, 3> color;
 		float linearFalloff;
 
 		float quadFalloff;
