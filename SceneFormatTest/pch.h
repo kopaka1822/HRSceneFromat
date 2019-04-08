@@ -7,3 +7,5 @@
 
 #include "gtest/gtest.h"
 #include "../include/hrsf/SceneFormat.h"
+
+using namespace hrsf;

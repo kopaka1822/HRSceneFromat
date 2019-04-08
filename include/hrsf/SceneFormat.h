@@ -45,7 +45,12 @@ namespace hrsf
 		/// \brief retrieves the value from the json. if the json does not contain the value
 		/// the default value is returned instead
 		template<class T>
-		static T getOrDefault(const json& j, T defaultValue);
+		static T getOrDefault(const json& j, const char* name, T defaultValue);
+		template<>
+		static std::array<float, 3> getOrDefault(const json& j, const char* name, std::array<float, 3> defaultValue);
+
+		static std::array<float, 3> getVec3(const json& j);
+		static void writeVec3(json& j, const std::array<float, 3>& vec);
 
 		/// \brief retrieves directory of the specified filename. works with / and \.
 		/// data/filename.txt => data/
@@ -129,7 +134,7 @@ namespace hrsf
 		const auto& marray = j["materials"];
 		if (!marray.is_array())
 			throw std::runtime_error("materials must be an array");
-		materials.resize(marray.size());
+		materials.reserve(marray.size());
 		for (const auto& m : marray)
 			materials.emplace_back(loadMaterial(m));
 
@@ -137,7 +142,7 @@ namespace hrsf
 		const auto& larray = j["lights"];
 		if (!larray.is_array())
 			throw std::runtime_error("lights must be an array");
-		lights.resize(larray.size());
+		lights.reserve(larray.size());
 		for (const auto& l : larray)
 			lights.emplace_back(loadLight(l));
 
@@ -188,23 +193,23 @@ namespace hrsf
 
 			// data
 			// always write diffuse
-			j["diffuse"] = m.data.diffuse;
+			writeVec3(j["diffuse"], m.data.diffuse);
 			if (m.data.ambient != MaterialData::Default().ambient)
-				j["ambient"] = m.data.ambient;
+				writeVec3(j["ambient"], m.data.ambient);
 			if (m.data.roughness != MaterialData::Default().roughness)
 				j["roughness"] = m.data.roughness;
 			if (m.data.occlusion != MaterialData::Default().occlusion)
 				j["occlusion"] = m.data.occlusion;
 			if (m.data.specular != MaterialData::Default().specular)
-				j["specular"] = m.data.specular;
+				writeVec3(j["specular"], m.data.specular);
 			if (m.data.gloss != MaterialData::Default().gloss)
 				j["gloss"] = m.data.gloss;
 			if (m.data.emission != MaterialData::Default().emission)
-				j["emission"] = m.data.emission;
+				writeVec3(j["emission"], m.data.emission);
 			
 			// write flags as booleans
 			const bool reflection = (m.data.flags & MaterialData::Reflection) != 0;
-			if ((m.data.flags & MaterialData::Reflection != 0) != reflection)
+			if (((MaterialData::Default().flags & MaterialData::Reflection) != 0) != reflection)
 				j["reflection"] = reflection;
 			
 				
@@ -238,7 +243,7 @@ namespace hrsf
 			}
 
 			j["type"] = strType;
-			j["color"] = l.color;
+			writeVec3(j["color"], l.color);
 
 			res.push_back(std::move(j));
 		}
@@ -275,7 +280,7 @@ namespace hrsf
 	inline SceneFormat::json SceneFormat::getEnvironmentJson() const
 	{
 		json j;
-		j["color"] = m_environment.color;
+		writeVec3(j["color"], m_environment.color);
 
 		if(!m_environment.map.empty())
 			j["map"] = m_environment.map;
@@ -291,23 +296,23 @@ namespace hrsf
 		mat.name = j["name"].get<std::string>();
 
 		// textures
-		mat.textures.diffuse = getOrDefault(j["diffuseTex"], std::string());
-		mat.textures.ambient = getOrDefault(j["ambientTex"], std::string());
-		mat.textures.specular = getOrDefault(j["specularTex"], std::string());
-		mat.textures.occlusion = getOrDefault(j["occlusionTex"], std::string());
+		mat.textures.diffuse = getOrDefault(j, "diffuseTex", std::string());
+		mat.textures.ambient = getOrDefault(j,"ambientTex", std::string());
+		mat.textures.specular = getOrDefault(j,"specularTex", std::string());
+		mat.textures.occlusion = getOrDefault(j,"occlusionTex", std::string());
 
 		// data
-		mat.data.diffuse = j["diffuse"].get<std::array<float, 3>>();
-		mat.data.roughness = getOrDefault(j["roughness"], MaterialData::Default().roughness);
-		mat.data.occlusion = getOrDefault(j["occlusion"], MaterialData::Default().occlusion);
-		mat.data.specular = getOrDefault(j["specular"], MaterialData::Default().specular);
-		mat.data.gloss = getOrDefault(j["gloss"], MaterialData::Default().gloss);
-		mat.data.emission = getOrDefault(j["emission"], MaterialData::Default().emission);
+		mat.data.diffuse = getVec3(j["diffuse"]);
+		mat.data.roughness = getOrDefault(j,"roughness", MaterialData::Default().roughness);
+		mat.data.occlusion = getOrDefault(j,"occlusion", MaterialData::Default().occlusion);
+		mat.data.specular = getOrDefault(j,"specular", MaterialData::Default().specular);
+		mat.data.gloss = getOrDefault(j,"gloss", MaterialData::Default().gloss);
+		mat.data.emission = getOrDefault(j,"emission", MaterialData::Default().emission);
 		
 		mat.data.flags = 0;
 
 		// reflection?
-		if(getOrDefault(j["reflection"], (MaterialData::Default().flags & MaterialData::Reflection) != 0))
+		if(getOrDefault(j, "reflection", (MaterialData::Default().flags & MaterialData::Reflection) != 0))
 			mat.data.flags |= MaterialData::Reflection;
 
 		return mat;
@@ -321,12 +326,12 @@ namespace hrsf
 			cam.type = Camera::Pinhole;
 		else throw std::runtime_error("unknown camera type " + strType);
 
-		cam.position = j["position"].get<std::array<float, 3>>();
-		cam.direction = j["direction"].get<std::array<float, 3>>();
+		cam.position = getVec3(j["position"]);
+		cam.direction = getVec3(j["direction"]);
 		cam.fov = j["fov"].get<float>();
-		cam.near = getOrDefault(j["near"], Camera::Default().near);
-		cam.far = getOrDefault(j["far"], Camera::Default().far);
-		cam.up = getOrDefault(j["up"], Camera::Default().up);
+		cam.near = getOrDefault(j, "near", Camera::Default().near);
+		cam.far = getOrDefault(j, "far", Camera::Default().far);
+		cam.up = getOrDefault(j, "up", Camera::Default().up);
 
 		return cam;
 	}
@@ -334,10 +339,10 @@ namespace hrsf
 	inline Environment SceneFormat::loadEnvironment(const json& j)
 	{
 		Environment env;
-		env.color = j["color"].get<std::array<float, 3>>();
+		env.color = getVec3(j["color"]);
 
-		env.map = getOrDefault(j["map"], std::string());
-		env.ambient = getOrDefault(j["ambient"], std::string());
+		env.map = getOrDefault(j, "map", std::string());
+		env.ambient = getOrDefault(j, "ambient", std::string());
 
 		return env;
 	}
@@ -349,27 +354,64 @@ namespace hrsf
 		if(strType == "Point")
 		{
 			l.type = Light::Point;
-			l.position = j["position"].get<std::array<float, 3>>();
+			l.position = getVec3(j["position"]);
 			l.linearFalloff = j["linearFalloff"].get<float>();
 			l.quadFalloff = j["quadFalloff"].get<float>();
 		}
 		else if(strType == "Directional")
 		{
 			l.type = Light::Directional;
-			l.direction = j["direction"].get<std::array<float, 3>>();
+			l.direction = getVec3(j["direction"]);
 		}
 		else throw std::runtime_error("invalid light type " + strType);
 
-		l.color = j["color"].get<std::array<float, 3>>();;
+		l.color = getVec3(j["color"]);
 
 		return l;
 	}
 
 	template <class T>
-	T SceneFormat::getOrDefault(const json& j, T defaultValue)
+	T SceneFormat::getOrDefault(const json& j, const char* name, T defaultValue)
 	{
-		if (j.empty()) return defaultValue;
-		return j.get<T>();
+		auto it = j.find(name);
+		if (it == j.end()) return defaultValue;
+		//if (it.value().empty()) return defaultValue;
+		return it.value().get<T>();
+	}
+
+	template <>
+	inline std::array<float, 3> SceneFormat::getOrDefault<std::array<float, 3>>(const json& j, const char* name,
+		std::array<float, 3> defaultValue)
+	{
+		auto it = j.find(name);
+		if (it == j.end()) return defaultValue;
+		return getVec3(it.value());
+	}
+
+	inline std::array<float, 3> SceneFormat::getVec3(const json& j)
+	{
+		std::array<float, 3> res;
+		if (j.is_array())
+		{
+			if (j.size() == 1)
+				res.fill(j[0].get<float>());
+			else if (j.size() == 3)
+				return j.get<std::array<float, 3>>();
+			else throw std::runtime_error("expected array with 3 or 1 element but got " + std::to_string(j.size()));
+		}
+		else
+			res.fill(j.get<float>());
+
+		return res;
+	}
+
+	inline void SceneFormat::writeVec3(json& j, const std::array<float, 3>& vec)
+	{
+		// all values are equal?	
+		if (vec[0] == vec[1] && vec[1] == vec[2])
+			j = vec[0]; // write only single value
+		else
+			j = vec;
 	}
 
 	inline std::string SceneFormat::getDirectory(const std::string& filename)
