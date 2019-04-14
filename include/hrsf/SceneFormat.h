@@ -25,6 +25,10 @@ namespace hrsf
 		std::vector<MaterialData> getMaterialsData() const;
 		const Environment& getEnvironment() const;
 
+		void removeUnusedMaterials();
+		/// \brief throws an exception if something seems wrong
+		void verify() const;
+
 		/// \brief loads the scene from the filesystem
 		/// \param filename filename without extension
 		static SceneFormat load(const std::string& filename);
@@ -106,6 +110,63 @@ namespace hrsf
 	inline const Environment& SceneFormat::getEnvironment() const
 	{
 		return m_environment;
+	}
+
+	inline void SceneFormat::removeUnusedMaterials()
+	{
+		std::vector<bool> isUsed(m_materials.size(), false);
+
+		for(const auto& s : m_mesh.getShapes())
+		{
+			isUsed[s.materialId] = true;
+		}
+
+		if (std::all_of(isUsed.begin(), isUsed.end(), [](bool used) {return used; }))
+			return; // all materials are used
+
+		// remove unused materials
+		// lookup table: materialLookup[a] = b the material id a will be changed to b
+		std::vector<uint32_t> materialLookup;
+		materialLookup.resize(m_materials.size());
+
+		uint32_t curIndex = 0;
+		for(uint32_t i = 0; i < uint32_t(m_materials.size()); ++i)
+		{
+			if(isUsed[i])
+			{
+				materialLookup[i] = curIndex++;
+			}
+		}
+
+		for(auto& s : m_mesh.getShapes())
+		{
+			s.materialId = materialLookup[s.materialId];
+		}
+
+		// remove unused materials
+		decltype(m_materials) newMaterials;
+		newMaterials.reserve(m_materials.size());
+
+		for(size_t i = 0; i < isUsed.size(); ++i)
+		{
+			if (isUsed[i])
+				newMaterials.push_back(m_materials[i]);
+		}
+
+		m_materials = std::move(newMaterials);
+	}
+
+	inline void SceneFormat::verify() const
+	{
+		// verify mesh
+		m_mesh.verify();
+
+		// test that materials are not out of bound
+		for(const auto& s : m_mesh.getShapes())
+		{
+			if (s.materialId >= m_materials.size())
+				throw std::runtime_error("material id out of bound: " + std::to_string(s.materialId));
+		}
 	}
 
 	inline SceneFormat SceneFormat::load(const std::string& filename)

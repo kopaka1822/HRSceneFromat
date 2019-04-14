@@ -97,3 +97,73 @@ TEST(TestSuite, SaveLoad)
 	EXPECT_EQ(res.getMesh().getVertices(), f.getMesh().getVertices());
 	EXPECT_EQ(res.getMesh().getShapes().size(), f.getMesh().getShapes().size());
 }
+
+TEST(TestSuite, UnusedMaterials)
+{
+	// dummy mesh
+	const std::vector<float> vertices = {
+		0.0f, 0.0f, 0.0f, // vertex 1
+		1.0f, 0.0f, 1.0f, // vertex 2
+		0.0f, 1.0f, 0.0f, // vertex 3
+	};
+	const std::vector<uint32_t> indices = {
+		0, 1, 2, // triangle 1
+	};
+	const std::vector<bmf::BinaryMesh::Shape> shapes = {
+		bmf::BinaryMesh::Shape{0, 3, 0},
+		bmf::BinaryMesh::Shape{0, 3, 1},
+		bmf::BinaryMesh::Shape{0, 3, 3},
+	};
+
+	bmf::BinaryMesh mesh(bmf::Position, vertices, indices, shapes);
+	EXPECT_NO_THROW(mesh.verify());
+
+	Camera cam = Camera::Default();
+
+	std::vector<Light> lights;
+
+	std::vector<Material> materials;
+	// mat 0 (default material)
+	materials.emplace_back();
+	materials.back().name = "mat0";
+	materials.back().data = MaterialData::Default();
+
+	// mat 1
+	materials.emplace_back();
+	materials.back().name = "mat1";
+	materials.back().data = MaterialData::Default();
+
+	// mat 2
+	materials.emplace_back();
+	materials.back().name = "mat2";
+	materials.back().data = MaterialData::Default();
+
+	// mat 3
+	materials.emplace_back();
+	materials.back().name = "mat3";
+	materials.back().data = MaterialData::Default();
+
+	// mat 4
+	materials.emplace_back();
+	materials.back().name = "mat4";
+	materials.back().data = MaterialData::Default();
+
+	Environment env;
+	env.color = { 0.4f, 0.6f, 1.0f };
+
+	SceneFormat f(std::move(mesh), cam, lights, materials, env);
+
+	EXPECT_NO_THROW(f.verify());
+	f.removeUnusedMaterials();
+
+	// kept the cor
+	EXPECT_EQ(f.getMaterials().size(), 3);
+	EXPECT_EQ(f.getMaterials()[0].name, std::string("mat0"));
+	EXPECT_EQ(f.getMaterials()[1].name, std::string("mat1"));
+	EXPECT_EQ(f.getMaterials()[2].name, std::string("mat3"));
+
+	// new material ids for shapes
+	EXPECT_EQ(f.getMesh().getShapes()[0].materialId, 0);
+	EXPECT_EQ(f.getMesh().getShapes()[1].materialId, 1);
+	EXPECT_EQ(f.getMesh().getShapes()[2].materialId, 2);
+}
