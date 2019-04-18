@@ -1,15 +1,16 @@
 #pragma once
 #include <string>
 #include <array>
+#include <filesystem>
 
 namespace hrsf
 {
 	struct MaterialTextures
 	{
-		std::string ambient;
-		std::string diffuse;
-		std::string specular;
-		std::string occlusion; // extra map if transparency was not stored in diffuse map
+		std::filesystem::path ambient;
+		std::filesystem::path diffuse;
+		std::filesystem::path specular;
+		std::filesystem::path occlusion; // extra map if transparency was not stored in diffuse map
 	};
 
 	// material data that is aligned to 16 byte for the graphics card

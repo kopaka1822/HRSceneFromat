@@ -6,9 +6,12 @@
 #include "Material.h"
 #include "../../dependencies/json/single_include/nlohmann/json.hpp"
 #include "Environment.h"
+#include <filesystem>
 
 namespace hrsf
 {
+	namespace fs = std::filesystem;
+
 	class SceneFormat
 	{
 		using json = nlohmann::json;
@@ -17,7 +20,7 @@ namespace hrsf
 		SceneFormat(bmf::BinaryMesh mesh, Camera cam, std::vector<Light> lights, std::vector<Material> materials, Environment env);
 		SceneFormat(SceneFormat&&) = default;
 		SceneFormat& operator=(SceneFormat&&) = default;
-		
+
 		const bmf::BinaryMesh& getMesh() const;
 		const Camera& getCamera() const;
 		const std::vector<Light>& getLights() const;
@@ -31,19 +34,19 @@ namespace hrsf
 
 		/// \brief loads the scene from the filesystem
 		/// \param filename filename without extension
-		static SceneFormat load(const std::string& filename);
+		static SceneFormat load(const fs::path& filename);
 		/// \brief saves the scene.
 		/// \param filename output files are: filename.json, filename.bmf
-		void save(const std::string& filename) const;
+		void save(const fs::path& filename) const;
 
 	private:
-		json getMaterialsJson() const;
+		json getMaterialsJson(const fs::path& root) const;
 		json getLightsJson() const;
 		json getCameraJson() const;
-		json getEnvironmentJson() const;
-		static Material loadMaterial(const json& j);
+		json getEnvironmentJson(const fs::path& root) const;
+		static Material loadMaterial(const json& j, const fs::path& root);
 		static Camera loadCamera(const json& j);
-		static Environment loadEnvironment(const json& j);
+		static Environment loadEnvironment(const json& j, const fs::path& root);
 		static Light loadLight(const json& j);
 
 		/// \brief retrieves the value from the json. if the json does not contain the value
@@ -52,13 +55,13 @@ namespace hrsf
 		static T getOrDefault(const json& j, const char* name, T defaultValue);
 		template<>
 		static std::array<float, 3> getOrDefault(const json& j, const char* name, std::array<float, 3> defaultValue);
+		static fs::path getFilename(const json& j, const char* name, const fs::path& root);
 
 		static std::array<float, 3> getVec3(const json& j);
 		static void writeVec3(json& j, const std::array<float, 3>& vec);
 
-		/// \brief retrieves directory of the specified filename. works with / and \.
-		/// data/filename.txt => data/
-		static std::string getDirectory(const std::string& filename);
+		static std::string getRelativePath(const fs::path& root, const fs::path& p);
+		static fs::path getAbsolutePath(const fs::path& root, const fs::path& p);
 
 		bmf::BinaryMesh m_mesh;
 		Camera m_camera;
@@ -72,8 +75,8 @@ namespace hrsf
 	inline SceneFormat::SceneFormat(bmf::BinaryMesh mesh, Camera cam, std::vector<Light> lights,
 		std::vector<Material> materials, Environment env)
 		:
-	m_mesh(std::move(mesh)), m_camera(cam), m_lights(std::move(lights)), 
-	m_materials(std::move(materials)), m_environment(env)
+		m_mesh(std::move(mesh)), m_camera(cam), m_lights(std::move(lights)),
+		m_materials(std::move(materials)), m_environment(env)
 	{}
 
 	inline const bmf::BinaryMesh& SceneFormat::getMesh() const
@@ -116,7 +119,7 @@ namespace hrsf
 	{
 		std::vector<bool> isUsed(m_materials.size(), false);
 
-		for(const auto& s : m_mesh.getShapes())
+		for (const auto& s : m_mesh.getShapes())
 		{
 			isUsed[s.materialId] = true;
 		}
@@ -130,15 +133,15 @@ namespace hrsf
 		materialLookup.resize(m_materials.size());
 
 		uint32_t curIndex = 0;
-		for(uint32_t i = 0; i < uint32_t(m_materials.size()); ++i)
+		for (uint32_t i = 0; i < uint32_t(m_materials.size()); ++i)
 		{
-			if(isUsed[i])
+			if (isUsed[i])
 			{
 				materialLookup[i] = curIndex++;
 			}
 		}
 
-		for(auto& s : m_mesh.getShapes())
+		for (auto& s : m_mesh.getShapes())
 		{
 			s.materialId = materialLookup[s.materialId];
 		}
@@ -147,7 +150,7 @@ namespace hrsf
 		decltype(m_materials) newMaterials;
 		newMaterials.reserve(m_materials.size());
 
-		for(size_t i = 0; i < isUsed.size(); ++i)
+		for (size_t i = 0; i < isUsed.size(); ++i)
 		{
 			if (isUsed[i])
 				newMaterials.push_back(m_materials[i]);
@@ -162,33 +165,40 @@ namespace hrsf
 		m_mesh.verify();
 
 		// test that materials are not out of bound
-		for(const auto& s : m_mesh.getShapes())
+		for (const auto& s : m_mesh.getShapes())
 		{
 			if (s.materialId >= m_materials.size())
 				throw std::runtime_error("material id out of bound: " + std::to_string(s.materialId));
 		}
 	}
 
-	inline SceneFormat SceneFormat::load(const std::string& filename)
+	inline SceneFormat SceneFormat::load(const fs::path& filename)
 	{
+		// absolute path of the json
+		auto jsonName = fs::absolute(filename.string() + ".json");
+
 		// load from file
-		std::ifstream file(filename + ".json");
+		std::ifstream file(jsonName);
+		if (!file.is_open())
+			throw std::runtime_error("could not open " + jsonName.string());
+
 		json j;
 		file >> j;
 		file.close();
 
 		const auto version = j["version"].get<size_t>();
 		if (version != s_version)
-			throw std::runtime_error(filename + " invalid version");
+			throw std::runtime_error(filename.string() + " invalid version");
 
 		// get directory path from filename
-		const auto directory = getDirectory(filename);
-		const auto binaryName = j["scene"].get<std::string>();
-		auto bmf = bmf::BinaryMesh::loadFromFile(directory + binaryName);
+		const auto directory = jsonName.parent_path();
+		const fs::path binaryName = j["scene"].get<std::string>();
+
+		auto bmf = bmf::BinaryMesh::loadFromFile(getAbsolutePath(directory, binaryName).string());
 
 		// load camera etc.
 		auto camera = loadCamera(j["camera"]);
-		auto env = loadEnvironment(j["environment"]);
+		auto env = loadEnvironment(j["environment"], directory);
 
 		// material
 		std::vector<Material> materials;
@@ -197,7 +207,7 @@ namespace hrsf
 			throw std::runtime_error("materials must be an array");
 		materials.reserve(marray.size());
 		for (const auto& m : marray)
-			materials.emplace_back(loadMaterial(m));
+			materials.emplace_back(loadMaterial(m, directory));
 
 		std::vector<Light> lights;
 		const auto& larray = j["lights"];
@@ -208,49 +218,53 @@ namespace hrsf
 			lights.emplace_back(loadLight(l));
 
 		return SceneFormat(
-			std::move(bmf), 
-			std::move(camera), 
-			std::move(lights), 
-			std::move(materials), 
+			std::move(bmf),
+			std::move(camera),
+			std::move(lights),
+			std::move(materials),
 			std::move(env)
 		);
 	}
 
-	inline void SceneFormat::save(const std::string& filename) const
+	inline void SceneFormat::save(const fs::path& filename) const
 	{
-		const auto binaryName = filename + ".bmf";
-		m_mesh.saveToFile(binaryName);
+		const fs::path binaryName = filename.string() + ".bmf";
+		const fs::path jsonName = filename.string() + ".json";
+		m_mesh.saveToFile(binaryName.string());
 
 		json j;
 		j["version"] = s_version;
-		j["scene"] = binaryName;
-		j["materials"] = getMaterialsJson();
+		j["scene"] = binaryName.filename().string();
+		j["materials"] = getMaterialsJson(jsonName);
 		j["lights"] = getLightsJson();
 		j["camera"] = getCameraJson();
-		j["environment"] = getEnvironmentJson();
+		j["environment"] = getEnvironmentJson(jsonName);
 
-		std::ofstream file(filename + ".json");
+		std::ofstream file(jsonName);
+		if (!file.is_open())
+			throw std::runtime_error("could not open " + jsonName.string());
+
 		file << j.dump(3);
 		file.close();
 	}
 
-	inline SceneFormat::json SceneFormat::getMaterialsJson() const
+	inline SceneFormat::json SceneFormat::getMaterialsJson(const fs::path& root) const
 	{
 		auto res = json::array();
-		for(const auto& m : m_materials)
+		for (const auto& m : m_materials)
 		{
 			json j;
 			j["name"] = m.name;
 
 			// textures
-			if(!m.textures.diffuse.empty())
-				j["diffuseTex"] = m.textures.diffuse;
-			if(!m.textures.ambient.empty())
-				j["ambientTex"] = m.textures.ambient;
+			if (!m.textures.diffuse.empty())
+				j["diffuseTex"] = getRelativePath(root, m.textures.diffuse);
+			if (!m.textures.ambient.empty())
+				j["ambientTex"] = getRelativePath(root, m.textures.ambient);
 			if (!m.textures.specular.empty())
-				j["specularTex"] = m.textures.specular;
+				j["specularTex"] = getRelativePath(root, m.textures.specular);
 			if (!m.textures.occlusion.empty())
-				j["occlusionTex"] = m.textures.occlusion;
+				j["occlusionTex"] = getRelativePath(root, m.textures.occlusion);
 
 			// data
 			// always write diffuse
@@ -267,13 +281,13 @@ namespace hrsf
 				j["gloss"] = m.data.gloss;
 			if (m.data.emission != MaterialData::Default().emission)
 				writeVec3(j["emission"], m.data.emission);
-			
+
 			// write flags as booleans
 			const bool reflection = (m.data.flags & MaterialData::Reflection) != 0;
 			if (((MaterialData::Default().flags & MaterialData::Reflection) != 0) != reflection)
 				j["reflection"] = reflection;
-			
-				
+
+
 
 			res.push_back(std::move(j));
 		}
@@ -283,7 +297,7 @@ namespace hrsf
 	inline SceneFormat::json SceneFormat::getLightsJson() const
 	{
 		auto res = json::array();
-		for(const auto& l : m_lights)
+		for (const auto& l : m_lights)
 		{
 			json j;
 			std::string strType;
@@ -299,7 +313,7 @@ namespace hrsf
 				strType = "Directional";
 				j["direction"] = l.direction;
 				break;
-			default: 
+			default:
 				throw std::runtime_error("invalid light type");
 			}
 
@@ -316,9 +330,9 @@ namespace hrsf
 	{
 		json j;
 		std::string strType;
-		switch (m_camera.type) 
-		{ 
-		case Camera::Pinhole: 
+		switch (m_camera.type)
+		{
+		case Camera::Pinhole:
 			strType = "Pinhole";
 			break;
 		default: throw std::runtime_error("invalid camera type");
@@ -338,42 +352,42 @@ namespace hrsf
 		return j;
 	}
 
-	inline SceneFormat::json SceneFormat::getEnvironmentJson() const
+	inline SceneFormat::json SceneFormat::getEnvironmentJson(const fs::path& root) const
 	{
 		json j;
 		writeVec3(j["color"], m_environment.color);
 
-		if(!m_environment.map.empty())
-			j["map"] = m_environment.map;
+		if (!m_environment.map.empty())
+			j["map"] = getRelativePath(root, m_environment.map);
 		if (!m_environment.ambient.empty())
-			j["ambient"] = m_environment.ambient;
+			j["ambient"] = getRelativePath(root, m_environment.ambient);
 
 		return j;
 	}
 
-	inline Material SceneFormat::loadMaterial(const json& j)
+	inline Material SceneFormat::loadMaterial(const json& j, const fs::path& root)
 	{
 		Material mat;
 		mat.name = j["name"].get<std::string>();
 
 		// textures
-		mat.textures.diffuse = getOrDefault(j, "diffuseTex", std::string());
-		mat.textures.ambient = getOrDefault(j,"ambientTex", std::string());
-		mat.textures.specular = getOrDefault(j,"specularTex", std::string());
-		mat.textures.occlusion = getOrDefault(j,"occlusionTex", std::string());
-
+		mat.textures.diffuse = getFilename(j, "diffuseTex", root);
+		mat.textures.ambient = getFilename(j, "ambientTex", root);
+		mat.textures.specular = getFilename(j, "specularTex", root);
+		mat.textures.occlusion = getFilename(j, "occlusionTex", root);
+		
 		// data
 		mat.data.diffuse = getVec3(j["diffuse"]);
-		mat.data.roughness = getOrDefault(j,"roughness", MaterialData::Default().roughness);
-		mat.data.occlusion = getOrDefault(j,"occlusion", MaterialData::Default().occlusion);
-		mat.data.specular = getOrDefault(j,"specular", MaterialData::Default().specular);
-		mat.data.gloss = getOrDefault(j,"gloss", MaterialData::Default().gloss);
-		mat.data.emission = getOrDefault(j,"emission", MaterialData::Default().emission);
-		
+		mat.data.roughness = getOrDefault(j, "roughness", MaterialData::Default().roughness);
+		mat.data.occlusion = getOrDefault(j, "occlusion", MaterialData::Default().occlusion);
+		mat.data.specular = getOrDefault(j, "specular", MaterialData::Default().specular);
+		mat.data.gloss = getOrDefault(j, "gloss", MaterialData::Default().gloss);
+		mat.data.emission = getOrDefault(j, "emission", MaterialData::Default().emission);
+
 		mat.data.flags = 0;
 
 		// reflection?
-		if(getOrDefault(j, "reflection", (MaterialData::Default().flags & MaterialData::Reflection) != 0))
+		if (getOrDefault(j, "reflection", (MaterialData::Default().flags & MaterialData::Reflection) != 0))
 			mat.data.flags |= MaterialData::Reflection;
 
 		return mat;
@@ -397,13 +411,13 @@ namespace hrsf
 		return cam;
 	}
 
-	inline Environment SceneFormat::loadEnvironment(const json& j)
+	inline Environment SceneFormat::loadEnvironment(const json& j, const fs::path& root)
 	{
 		Environment env;
 		env.color = getVec3(j["color"]);
 
-		env.map = getOrDefault(j, "map", std::string());
-		env.ambient = getOrDefault(j, "ambient", std::string());
+		env.map = getFilename(j, "map", root);
+		env.ambient = getFilename(j, "ambient", root);
 
 		return env;
 	}
@@ -412,14 +426,14 @@ namespace hrsf
 	{
 		Light l;
 		const auto strType = j["type"].get<std::string>();
-		if(strType == "Point")
+		if (strType == "Point")
 		{
 			l.type = Light::Point;
 			l.position = getVec3(j["position"]);
 			l.linearFalloff = j["linearFalloff"].get<float>();
 			l.quadFalloff = j["quadFalloff"].get<float>();
 		}
-		else if(strType == "Directional")
+		else if (strType == "Directional")
 		{
 			l.type = Light::Directional;
 			l.direction = getVec3(j["direction"]);
@@ -449,6 +463,14 @@ namespace hrsf
 		return getVec3(it.value());
 	}
 
+	inline fs::path SceneFormat::getFilename(const json& j, const char* name, const fs::path& root)
+	{
+		const auto it = j.find(name);
+		if (it == j.end()) return fs::path();
+
+		return getAbsolutePath(root, it.value().get<std::string>());
+	}
+
 	inline std::array<float, 3> SceneFormat::getVec3(const json& j)
 	{
 		std::array<float, 3> res;
@@ -475,16 +497,24 @@ namespace hrsf
 			j = vec;
 	}
 
-	inline std::string SceneFormat::getDirectory(const std::string& filename)
+	inline std::string SceneFormat::getRelativePath(const fs::path& root, const fs::path& p)
 	{
-		const auto fSlashPos = filename.find_last_of('/');
-		const auto bSlashPos = filename.find_last_of('\\');
-		if (bSlashPos == std::string::npos && fSlashPos == std::string::npos)
-			return ""; // no directory
-		if (fSlashPos == std::string::npos)
-			return filename.substr(0, bSlashPos + 1);
-		if (bSlashPos == std::string::npos)
-			return filename.substr(0, fSlashPos + 1);
-		return filename.substr(0, std::max(bSlashPos, fSlashPos) + 1);
+		if (p.is_relative()) // is already relative to the json root?
+			return p.string();
+
+		std::error_code err;
+		auto res = fs::relative(p, root, err);
+		if (err)
+			throw std::runtime_error("could not form relative path: " + err.message());
+
+		return res.string();
+	}
+
+	inline fs::path SceneFormat::getAbsolutePath(const fs::path& root, const fs::path& p)
+	{
+		if (p.is_absolute())
+			return p;
+
+		return root/p;
 	}
 }

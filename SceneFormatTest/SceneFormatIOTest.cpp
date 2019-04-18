@@ -50,7 +50,7 @@ TEST(TestSuite, SaveLoad)
 	materials.emplace_back();
 	materials.back().name = "spec";
 	materials.back().data = MaterialData::Default();
-	materials.back().textures.diffuse = "myTexture";
+	materials.back().textures.diffuse = "myTexture"; // save relative path
 	materials.back().data.flags = MaterialData::Reflection;
 	materials.back().data.specular = { 1.0f, 0.0f, 1.0f };
 	
@@ -61,18 +61,20 @@ TEST(TestSuite, SaveLoad)
 	SceneFormat f(std::move(mesh), cam, lights, materials, env);
 
 	// save file
-	f.save("test");
+	f.save("subfolder/test");
 
 	// load file 
 	SceneFormat res;
-	ASSERT_NO_THROW(res = SceneFormat::load("test"));
+	ASSERT_NO_THROW(res = SceneFormat::load("subfolder/test"));
 
 	// test some material properties
 	EXPECT_EQ(res.getMaterials().size(), f.getMaterials().size());
 	EXPECT_EQ(res.getMaterials()[0].name, f.getMaterials()[0].name);
 	EXPECT_EQ(res.getMaterials()[1].name, f.getMaterials()[1].name);
-	
-	EXPECT_EQ(res.getMaterials()[1].textures.diffuse, f.getMaterials()[1].textures.diffuse);
+
+	// expect absolute path for texture
+	EXPECT_EQ(res.getMaterials()[1].textures.diffuse, 
+		std::filesystem::absolute(fs::path("subfolder/" + f.getMaterials()[1].textures.diffuse.string())));
 	EXPECT_EQ(res.getMaterials()[1].data.specular, f.getMaterials()[1].data.specular);
 	EXPECT_EQ(res.getMaterials()[1].data.flags, f.getMaterials()[1].data.flags);
 
@@ -88,7 +90,8 @@ TEST(TestSuite, SaveLoad)
 
 	// test some env stuff
 	EXPECT_EQ(res.getEnvironment().color, f.getEnvironment().color);
-	EXPECT_EQ(res.getEnvironment().map, f.getEnvironment().map);
+	EXPECT_EQ(res.getEnvironment().map, 
+		std::filesystem::absolute(fs::path("subfolder/" + f.getEnvironment().map.string())));
 
 	// test some binary mesh stuff
 	EXPECT_NO_THROW(res.getMesh().verify());

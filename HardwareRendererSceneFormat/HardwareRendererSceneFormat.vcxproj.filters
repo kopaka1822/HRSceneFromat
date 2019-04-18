@@ -27,4 +27,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\dummy.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+  </ItemGroup>
 </Project>
