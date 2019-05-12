@@ -230,15 +230,16 @@ namespace hrsf
 	{
 		const fs::path binaryName = filename.string() + ".bmf";
 		const fs::path jsonName = filename.string() + ".json";
+		const fs::path rootDirectory = jsonName.parent_path();
 		m_mesh.saveToFile(binaryName.string());
 
 		json j;
 		j["version"] = s_version;
 		j["scene"] = binaryName.filename().string();
-		j["materials"] = getMaterialsJson(jsonName);
+		j["materials"] = getMaterialsJson(rootDirectory);
 		j["lights"] = getLightsJson();
 		j["camera"] = getCameraJson();
-		j["environment"] = getEnvironmentJson(jsonName);
+		j["environment"] = getEnvironmentJson(rootDirectory);
 
 		std::ofstream file(jsonName);
 		if (!file.is_open())
