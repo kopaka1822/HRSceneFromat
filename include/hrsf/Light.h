@@ -22,5 +22,7 @@ namespace hrsf
 		float linearFalloff;
 
 		float quadFalloff;
+		// padding to keep structure 16 byte aligned
+		std::array<float, 3> padding;
 	};
 }
