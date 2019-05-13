@@ -6,18 +6,20 @@ TEST(TestSuite, SaveLoad)
 {
 	// dummy mesh
 	const std::vector<float> vertices = {
-		0.0f, 0.0f, 0.0f, 0.0f, 0.0f, // vertex 1
-		1.0f, 0.0f, 1.0f, 0.1f, 0.2f, // vertex 2
-		0.0f, 1.0f, 0.0f, 0.5f, 0.6f, // vertex 3
+		0.0f, 0.0f, 0.0f, 0.0f, 0.0f, // vertex 0
+		1.0f, 0.0f, 1.0f, 0.1f, 0.2f, // vertex 1
+		0.0f, 1.0f, 0.0f, 0.5f, 0.6f, // vertex 2
+		1.0f, 0.0f, 2.0f, 0.7f, 0.9f, // vertex 3
 		1.0f, 0.0f, 2.0f, 0.7f, 0.9f, // vertex 4
+		1.0f, 0.0f, 2.0f, 0.7f, 0.9f, // vertex 5
 	};
 	const std::vector<uint32_t> indices = {
 		0, 1, 2, // triangle 1
-		1, 2, 3, // triangle 2
+		2, 1, 0, // triangle 2
 	};
 	const std::vector<bmf::BinaryMesh::Shape> shapes = {
-		bmf::BinaryMesh::Shape{0, 3, 0}, // shape
-		bmf::BinaryMesh::Shape{3, 3, 1}, // shape
+		bmf::BinaryMesh::Shape{0, 3, 0, 3, 0}, // shape
+		bmf::BinaryMesh::Shape{3, 3, 3, 3, 1}, // shape
 	};
 
 	bmf::BinaryMesh mesh(bmf::Position | bmf::Texcoord0, vertices, indices, shapes);
@@ -108,14 +110,22 @@ TEST(TestSuite, UnusedMaterials)
 		0.0f, 0.0f, 0.0f, // vertex 1
 		1.0f, 0.0f, 1.0f, // vertex 2
 		0.0f, 1.0f, 0.0f, // vertex 3
+		0.0f, 0.0f, 0.0f, // vertex 1
+		1.0f, 0.0f, 1.0f, // vertex 2
+		0.0f, 1.0f, 0.0f, // vertex 3
+		0.0f, 0.0f, 0.0f, // vertex 1
+		1.0f, 0.0f, 1.0f, // vertex 2
+		0.0f, 1.0f, 0.0f, // vertex 3
 	};
 	const std::vector<uint32_t> indices = {
 		0, 1, 2, // triangle 1
+		0, 1, 2, // triangle 1
+		0, 1, 2, // triangle 1
 	};
 	const std::vector<bmf::BinaryMesh::Shape> shapes = {
-		bmf::BinaryMesh::Shape{0, 3, 0},
-		bmf::BinaryMesh::Shape{0, 3, 1},
-		bmf::BinaryMesh::Shape{0, 3, 3},
+		bmf::BinaryMesh::Shape{0, 3, 0, 3, 0},
+		bmf::BinaryMesh::Shape{0, 3, 3, 3, 1},
+		bmf::BinaryMesh::Shape{0, 3, 6, 3, 3},
 	};
 
 	bmf::BinaryMesh mesh(bmf::Position, vertices, indices, shapes);
@@ -178,13 +188,17 @@ TEST(TestSuite, VerifyFail)
 		0.0f, 0.0f, 0.0f, // vertex 1
 		1.0f, 0.0f, 1.0f, // vertex 2
 		0.0f, 1.0f, 0.0f, // vertex 3
+		0.0f, 0.0f, 0.0f, // vertex 1
+		1.0f, 0.0f, 1.0f, // vertex 2
+		0.0f, 1.0f, 0.0f, // vertex 3
 	};
 	const std::vector<uint32_t> indices = {
 		0, 1, 2, // triangle 1
+		0, 1, 2, // triangle 2
 	};
 	const std::vector<bmf::BinaryMesh::Shape> shapes = {
-		bmf::BinaryMesh::Shape{0, 3, 0},
-		bmf::BinaryMesh::Shape{0, 3, 1}, // out of bound material
+		bmf::BinaryMesh::Shape{0, 3, 0, 3, 0},
+		bmf::BinaryMesh::Shape{0, 3, 3, 3, 1}, // out of bound material
 	};
 
 	bmf::BinaryMesh mesh(bmf::Position, vertices, indices, shapes);
