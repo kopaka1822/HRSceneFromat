@@ -123,6 +123,7 @@
     <ClInclude Include="..\include\hrsf\Environment.h" />
     <ClInclude Include="..\include\hrsf\Light.h" />
     <ClInclude Include="..\include\hrsf\Material.h" />
+    <ClInclude Include="..\include\hrsf\Path.h" />
     <ClInclude Include="..\include\hrsf\SceneFormat.h" />
   </ItemGroup>
   <ItemGroup>

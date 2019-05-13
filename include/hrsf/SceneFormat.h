@@ -34,20 +34,39 @@ namespace hrsf
 
 		/// \brief loads the scene from the filesystem
 		/// \param filename filename without extension
-		static SceneFormat load(const fs::path& filename);
+		static SceneFormat load(fs::path filename);
+		/// \brief loads the camera from the filesystem
+		/// \param filename filename without extension
+		static Camera loadCamera(fs::path filename);
+		/// \brief loads the materials from the filesystem
+		/// \param filename filename without extension
+		static std::vector<Material> loadMaterials(fs::path filename);
+		/// \brief loads the lights from the filesystem
+		/// \param filename filename without extension
+		static std::vector<Light> loadLights(fs::path filename);
+		/// \brief loads the environment from the filesystem
+		/// \param filename filename without extension
+		static Environment loadEnvironment(fs::path filename);
 		/// \brief saves the scene.
 		/// \param filename output files are: filename.json, filename.bmf
 		void save(const fs::path& filename) const;
-
+		static void saveCamera(const fs::path& filename, const Camera& camera);
+		static void saveMaterials(const fs::path& filename, const std::vector<Material>& materials);
+		static void saveLights(const fs::path& filename, const std::vector<Light>& lights);
+		static void saveEnvironment(const fs::path& filename, const Environment& env);
 	private:
-		json getMaterialsJson(const fs::path& root) const;
-		json getLightsJson() const;
-		json getCameraJson() const;
-		json getEnvironmentJson(const fs::path& root) const;
-		static Material loadMaterial(const json& j, const fs::path& root);
-		static Camera loadCamera(const json& j);
-		static Environment loadEnvironment(const json& j, const fs::path& root);
-		static Light loadLight(const json& j);
+		static json getMaterialsJson(const std::vector<Material>& materials, const fs::path& root);
+		static json getLightsJson(const std::vector<Light>& lights);
+		static json getCameraJson(const Camera& camera);
+		static json getEnvironmentJson(const Environment& env, const fs::path& root);
+		static json openFile(fs::path filename);
+		static void saveFile(const json& j, fs::path filename);
+		static Material loadMaterialJson(const json& j, const fs::path& root);
+		static std::vector<Material> loadMaterialsJson(const json& j, const fs::path& root);
+		static Camera loadCameraJson(const json& j);
+		static Environment loadEnvironmentJson(const json& j, const fs::path& root);
+		static std::vector<Light> loadLightsJson(const json& j);
+		static Light loadLightJson(const json& j);
 
 		/// \brief retrieves the value from the json. if the json does not contain the value
 		/// the default value is returned instead
@@ -172,50 +191,25 @@ namespace hrsf
 		}
 	}
 
-	inline SceneFormat SceneFormat::load(const fs::path& filename)
+	inline SceneFormat SceneFormat::load(fs::path filename)
 	{
-		// absolute path of the json
-		auto jsonName = fs::absolute(filename.string() + ".json");
-
-		// load from file
-		std::ifstream file(jsonName);
-		if (!file.is_open())
-			throw std::runtime_error("could not open " + jsonName.string());
-
-		json j;
-		file >> j;
-		file.close();
+		auto j = openFile(filename);
 
 		const auto version = j["version"].get<size_t>();
 		if (version != s_version)
 			throw std::runtime_error(filename.string() + " invalid version");
 
 		// get directory path from filename
-		const auto directory = jsonName.parent_path();
+		const auto directory = absolute(filename).parent_path();
 		const fs::path binaryName = j["scene"].get<std::string>();
 
 		auto bmf = bmf::BinaryMesh::loadFromFile(getAbsolutePath(directory, binaryName).string());
 
 		// load camera etc.
-		auto camera = loadCamera(j["camera"]);
-		auto env = loadEnvironment(j["environment"], directory);
-
-		// material
-		std::vector<Material> materials;
-		const auto& marray = j["materials"];
-		if (!marray.is_array())
-			throw std::runtime_error("materials must be an array");
-		materials.reserve(marray.size());
-		for (const auto& m : marray)
-			materials.emplace_back(loadMaterial(m, directory));
-
-		std::vector<Light> lights;
-		const auto& larray = j["lights"];
-		if (!larray.is_array())
-			throw std::runtime_error("lights must be an array");
-		lights.reserve(larray.size());
-		for (const auto& l : larray)
-			lights.emplace_back(loadLight(l));
+		auto camera = loadCameraJson(j["camera"]);
+		auto env = loadEnvironmentJson(j["environment"], directory);
+		auto materials = loadMaterialsJson(j["materials"], directory);
+		auto lights = loadLightsJson(j["lights"]);
 
 		return SceneFormat(
 			std::move(bmf),
@@ -226,33 +220,67 @@ namespace hrsf
 		);
 	}
 
+	inline Camera SceneFormat::loadCamera(fs::path filename)
+	{
+		return loadCameraJson(openFile(filename));
+	}
+
+	inline std::vector<Material> SceneFormat::loadMaterials(fs::path filename)
+	{
+		return loadMaterialsJson(openFile(filename), absolute(filename).parent_path());
+	}
+
+	inline std::vector<Light> SceneFormat::loadLights(fs::path filename)
+	{
+		return loadLightsJson(openFile(filename));
+	}
+
+	inline Environment SceneFormat::loadEnvironment(fs::path filename)
+	{
+		return loadEnvironmentJson(openFile(filename), filename.parent_path());
+	}
+
 	inline void SceneFormat::save(const fs::path& filename) const
 	{
 		const fs::path binaryName = filename.string() + ".bmf";
-		const fs::path jsonName = filename.string() + ".json";
-		const fs::path rootDirectory = jsonName.parent_path();
+		const fs::path rootDirectory = filename.parent_path();
 		m_mesh.saveToFile(binaryName.string());
 
 		json j;
 		j["version"] = s_version;
 		j["scene"] = binaryName.filename().string();
-		j["materials"] = getMaterialsJson(rootDirectory);
-		j["lights"] = getLightsJson();
-		j["camera"] = getCameraJson();
-		j["environment"] = getEnvironmentJson(rootDirectory);
+		j["materials"] = getMaterialsJson(m_materials, rootDirectory);
+		j["lights"] = getLightsJson(m_lights);
+		j["camera"] = getCameraJson(m_camera);
+		j["environment"] = getEnvironmentJson(m_environment, rootDirectory);
 
-		std::ofstream file(jsonName);
-		if (!file.is_open())
-			throw std::runtime_error("could not open " + jsonName.string());
-
-		file << j.dump(3);
-		file.close();
+		saveFile(j, filename);
 	}
 
-	inline SceneFormat::json SceneFormat::getMaterialsJson(const fs::path& root) const
+	inline void SceneFormat::saveCamera(const fs::path& filename, const Camera& camera)
+	{
+		saveFile(getCameraJson(camera), filename);
+	}
+
+	inline void SceneFormat::saveMaterials(const fs::path& filename, const std::vector<Material>& materials)
+	{
+		saveFile(getMaterialsJson(materials, filename.parent_path()), filename);
+	}
+
+	inline void SceneFormat::saveLights(const fs::path& filename, const std::vector<Light>& lights)
+	{
+		saveFile(getLightsJson(lights), filename);
+	}
+
+	inline void SceneFormat::saveEnvironment(const fs::path& filename, const Environment& env)
+	{
+		saveFile(getEnvironmentJson(env, filename.parent_path()), filename);
+	}
+
+	inline SceneFormat::json SceneFormat::getMaterialsJson(const std::vector<Material>& materials, const fs::path& root)
 	{
 		auto res = json::array();
-		for (const auto& m : m_materials)
+		for (const auto& m : materials)
 		{
 			json j;
 			j["name"] = m.name;
@@ -295,10 +323,10 @@ namespace hrsf
 		return res;
 	}
 
-	inline SceneFormat::json SceneFormat::getLightsJson() const
+	inline SceneFormat::json SceneFormat::getLightsJson(const std::vector<Light>& lights)
 	{
 		auto res = json::array();
-		for (const auto& l : m_lights)
+		for (const auto& l : lights)
 		{
 			json j;
 			std::string strType;
@@ -327,11 +355,11 @@ namespace hrsf
 		return res;
 	}
 
-	inline SceneFormat::json SceneFormat::getCameraJson() const
+	inline SceneFormat::json SceneFormat::getCameraJson(const Camera& camera)
 	{
 		json j;
 		std::string strType;
-		switch (m_camera.type)
+		switch (camera.type)
 		{
 		case Camera::Pinhole:
 			strType = "Pinhole";
@@ -340,33 +368,61 @@ namespace hrsf
 		}
 
 		j["type"] = strType;
-		j["position"] = m_camera.position;
-		j["direction"] = m_camera.direction;
-		j["fov"] = m_camera.fov;
-		if (m_camera.near != Camera::Default().near)
-			j["near"] = m_camera.near;
-		if (m_camera.far != Camera::Default().far)
-			j["far"] = m_camera.far;
-		if (m_camera.up != Camera::Default().up)
-			j["up"] = m_camera.up;
+		j["position"] = camera.position;
+		j["direction"] = camera.direction;
+		j["fov"] = camera.fov;
+		if (camera.near != Camera::Default().near)
+			j["near"] = camera.near;
+		if (camera.far != Camera::Default().far)
+			j["far"] = camera.far;
+		if (camera.up != Camera::Default().up)
+			j["up"] = camera.up;
 
 		return j;
 	}
 
-	inline SceneFormat::json SceneFormat::getEnvironmentJson(const fs::path& root) const
+	inline SceneFormat::json SceneFormat::getEnvironmentJson(const Environment& env, const fs::path& root)
 	{
 		json j;
-		writeVec3(j["color"], m_environment.color);
+		writeVec3(j["color"], env.color);
 
-		if (!m_environment.map.empty())
-			j["map"] = getRelativePath(root, m_environment.map);
-		if (!m_environment.ambient.empty())
-			j["ambient"] = getRelativePath(root, m_environment.ambient);
+		if (!env.map.empty())
+			j["map"] = getRelativePath(root, env.map);
+		if (!env.ambient.empty())
+			j["ambient"] = getRelativePath(root, env.ambient);
 
 		return j;
 	}
 
-	inline Material SceneFormat::loadMaterial(const json& j, const fs::path& root)
+	inline SceneFormat::json SceneFormat::openFile(fs::path filename)
+	{
+		// absolute path of the json
+		auto jsonName = fs::absolute(filename.replace_extension(".json"));
+
+		// load from file
+		std::ifstream file(jsonName);
+		if (!file.is_open())
+			throw std::runtime_error("could not open " + jsonName.string());
+
+		json j;
+		file >> j;
+		file.close();
+
+		return j;
+	}
+
+	inline void SceneFormat::saveFile(const json& j, fs::path filename)
+	{
+		filename = filename.replace_extension(".json");
+		std::ofstream file(filename);
+		if (!file.is_open())
+			throw std::runtime_error("could not open " + filename.string());
+
+		file << j.dump(3);
+		file.close();
+	}
+
+	inline Material SceneFormat::loadMaterialJson(const json& j, const fs::path& root)
 	{
 		Material mat;
 		mat.name = j["name"].get<std::string>();
@@ -394,7 +450,19 @@ namespace hrsf
 		return mat;
 	}
 
-	inline Camera SceneFormat::loadCamera(const json& j)
+	inline std::vector<Material> SceneFormat::loadMaterialsJson(const json& j, const fs::path& root)
+	{
+		std::vector<Material> materials;
+		if (!j.is_array())
+			throw std::runtime_error("materials must be an array");
+		materials.reserve(j.size());
+		for (const auto& m : j)
+			materials.emplace_back(loadMaterialJson(m, root));
+
+		return materials;
+	}
+
+	inline Camera SceneFormat::loadCameraJson(const json& j)
 	{
 		Camera cam;
 		const auto strType = j["type"].get<std::string>();
@@ -412,7 +480,7 @@ namespace hrsf
 		return cam;
 	}
 
-	inline Environment SceneFormat::loadEnvironment(const json& j, const fs::path& root)
+	inline Environment SceneFormat::loadEnvironmentJson(const json& j, const fs::path& root)
 	{
 		Environment env;
 		env.color = getVec3(j["color"]);
@@ -423,7 +491,19 @@ namespace hrsf
 		return env;
 	}
 
-	inline Light SceneFormat::loadLight(const json& j)
+	inline std::vector<Light> SceneFormat::loadLightsJson(const json& j)
+	{
+		std::vector<Light> lights;
+		if (!j.is_array())
+			throw std::runtime_error("lights must be an array");
+		lights.reserve(j.size());
+		for (const auto& l : j)
+			lights.emplace_back(loadLightJson(l));
+
+		return lights;
+	}
+
+	inline Light SceneFormat::loadLightJson(const json& j)
 	{
 		Light l;
 		const auto strType = j["type"].get<std::string>();

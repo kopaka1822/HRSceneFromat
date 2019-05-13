@@ -20,6 +20,7 @@ namespace hrsf
 		{
 			None = 0,
 			Reflection = 1,
+			Transparent = 2,
 		};
 
 		std::array<float, 3> ambient;
