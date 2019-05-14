@@ -129,6 +129,11 @@
   <ItemGroup>
     <ClCompile Include="..\src\dummy.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\dependencies\bmf\BinaryMeshFormat\BinaryMeshFormat.vcxproj">
+      <Project>{45231001-f53f-4efd-8194-25a0c34159d1}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
