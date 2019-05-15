@@ -1,4 +1,5 @@
 #include "pch.h"
+#include <glm/vec3.hpp>
 
 #define TestSuite SceneFormatIOTest
 
@@ -22,7 +23,7 @@ TEST(TestSuite, SaveLoad)
 		bmf::BinaryMesh::Shape{3, 3, 3, 3, 1, 1, 1}, // shape
 	};
 
-	bmf::BinaryMesh mesh(bmf::Position | bmf::Texcoord0, vertices, indices, shapes, {glm::mat4(1.0f), glm::mat4(1.0f) });
+	bmf::BinaryMesh mesh(bmf::Position | bmf::Texcoord0, vertices, indices, shapes, {glm::vec3(1.0f), glm::vec3(1.0f) });
 	EXPECT_NO_THROW(mesh.verify());
 
 	Camera cam = Camera::Default();
@@ -128,7 +129,7 @@ TEST(TestSuite, UnusedMaterials)
 		bmf::BinaryMesh::Shape{0, 3, 6, 3, 2,1,3},
 	};
 
-	bmf::BinaryMesh mesh(bmf::Position, vertices, indices, shapes, { glm::mat4(1.0f), glm::mat4(1.0f), glm::mat4(1.0f) });
+	bmf::BinaryMesh mesh(bmf::Position, vertices, indices, shapes, {glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f) });
 	EXPECT_NO_THROW(mesh.verify());
 
 	Camera cam = Camera::Default();
@@ -201,7 +202,7 @@ TEST(TestSuite, VerifyFail)
 		bmf::BinaryMesh::Shape{0, 3, 3, 3, 1,1,1}, // out of bound material
 	};
 
-	bmf::BinaryMesh mesh(bmf::Position, vertices, indices, shapes, { glm::mat4(1.0f) , glm::mat4(1.0f) });
+	bmf::BinaryMesh mesh(bmf::Position, vertices, indices, shapes, { glm::vec3(1.0f) , glm::vec3(1.0f) });
 	EXPECT_NO_THROW(mesh.verify());
 
 	Camera cam = Camera::Default();
