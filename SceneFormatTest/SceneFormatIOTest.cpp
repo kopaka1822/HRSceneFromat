@@ -19,11 +19,12 @@ TEST(TestSuite, SaveLoad)
 		2, 1, 0, // triangle 2
 	};
 	const std::vector<bmf::BinaryMesh::Shape> shapes = {
-		bmf::BinaryMesh::Shape{0, 3, 0, 3, 0, 1, 0}, // shape
-		bmf::BinaryMesh::Shape{3, 3, 3, 3, 1, 1, 1}, // shape
+		bmf::BinaryMesh::Shape{0, 3, 0, 3, /*0, 1,*/ 0}, // shape
+		bmf::BinaryMesh::Shape{3, 3, 3, 3, /*1, 1,*/ 1}, // shape
 	};
 
-	bmf::BinaryMesh mesh(bmf::Position | bmf::Texcoord0, vertices, indices, shapes, {glm::vec3(1.0f), glm::vec3(1.0f) });
+	bmf::BinaryMesh mesh(bmf::Position | bmf::Texcoord0, vertices, indices, shapes);// , { glm::vec3(1.0f), glm::vec3(1.0f) });
+	mesh.generateBoundingBoxes();
 	EXPECT_NO_THROW(mesh.verify());
 
 	Camera cam = Camera::Default();
@@ -124,12 +125,13 @@ TEST(TestSuite, UnusedMaterials)
 		0, 1, 2, // triangle 1
 	};
 	const std::vector<bmf::BinaryMesh::Shape> shapes = {
-		bmf::BinaryMesh::Shape{0, 3, 0, 3, 0,1,0},
-		bmf::BinaryMesh::Shape{0, 3, 3, 3, 1,1,1},
-		bmf::BinaryMesh::Shape{0, 3, 6, 3, 2,1,3},
+		bmf::BinaryMesh::Shape{0, 3, 0, 3, /*0,1,*/0},
+		bmf::BinaryMesh::Shape{0, 3, 3, 3, /*1,1,*/1},
+		bmf::BinaryMesh::Shape{0, 3, 6, 3, /*2,1,*/3},
 	};
 
-	bmf::BinaryMesh mesh(bmf::Position, vertices, indices, shapes, {glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f) });
+	bmf::BinaryMesh mesh(bmf::Position, vertices, indices, shapes);//, {glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f) });
+	mesh.generateBoundingBoxes();
 	EXPECT_NO_THROW(mesh.verify());
 
 	Camera cam = Camera::Default();
@@ -198,11 +200,12 @@ TEST(TestSuite, VerifyFail)
 		0, 1, 2, // triangle 2
 	};
 	const std::vector<bmf::BinaryMesh::Shape> shapes = {
-		bmf::BinaryMesh::Shape{0, 3, 0, 3, 0,1,0},
-		bmf::BinaryMesh::Shape{0, 3, 3, 3, 1,1,1}, // out of bound material
+		bmf::BinaryMesh::Shape{0, 3, 0, 3, /*0,1,*/0},
+		bmf::BinaryMesh::Shape{0, 3, 3, 3, /*1,1,*/1}, // out of bound material
 	};
 
-	bmf::BinaryMesh mesh(bmf::Position, vertices, indices, shapes, { glm::vec3(1.0f) , glm::vec3(1.0f) });
+	bmf::BinaryMesh mesh(bmf::Position, vertices, indices, shapes);// , { glm::vec3(1.0f) , glm::vec3(1.0f) });
+	mesh.generateBoundingBoxes();
 	EXPECT_NO_THROW(mesh.verify());
 
 	Camera cam = Camera::Default();
