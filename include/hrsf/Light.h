@@ -1,10 +1,11 @@
 #pragma once
 #include <glm/vec3.hpp>
+#include "Path.h"
 
 namespace hrsf
 {
 	// light structure that is aligned to 16 byte for the graphics card
-	struct Light
+	struct LightData
 	{
 		enum Type
 		{
@@ -25,5 +26,11 @@ namespace hrsf
 		float quadFalloff;
 		// padding to keep structure 16 byte aligned
 		glm::vec3 padding;
+	};
+
+	struct Light
+	{
+		LightData data;
+		Path path;
 	};
 }

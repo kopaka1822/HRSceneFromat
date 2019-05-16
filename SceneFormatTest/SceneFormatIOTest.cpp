@@ -27,23 +27,24 @@ TEST(TestSuite, SaveLoad)
 	mesh.generateBoundingBoxes();
 	EXPECT_NO_THROW(mesh.verify());
 
-	Camera cam = Camera::Default();
-	cam.fov = 1.4f;
-	cam.far = 1.0f;
-	cam.position = { 10.f, 20.0f, 30.0f };
+	Camera cam;
+	cam.data = CameraData::Default();
+	cam.data.fov = 1.4f;
+	cam.data.far = 1.0f;
+	cam.data.position = { 10.f, 20.0f, 30.0f };
 
 	std::vector<Light> lights;
 	// point light
-	lights.emplace_back(Light{ Light::Point });
-	lights.back().position = { 0.0f, 30.0f, 0.0f };
-	lights.back().linearFalloff = 1.0f;
-	lights.back().quadFalloff = 10.0f;
-	lights.back().color = { 1.0f, 0.0f, 0.0f };
+	lights.emplace_back(Light{ LightData::Point });
+	lights.back().data.position = { 0.0f, 30.0f, 0.0f };
+	lights.back().data.linearFalloff = 1.0f;
+	lights.back().data.quadFalloff = 10.0f;
+	lights.back().data.color = { 1.0f, 0.0f, 0.0f };
 
 	// directional light
-	lights.emplace_back(Light{ Light::Directional });
-	lights.back().direction = { 0.1f, -1.0f, 0.0f };
-	lights.back().color = { 1.0f, 0.8f, 1.0f };
+	lights.emplace_back(Light{ LightData::Directional });
+	lights.back().data.direction = { 0.1f, -1.0f, 0.0f };
+	lights.back().data.color = { 1.0f, 0.8f, 1.0f };
 
 	std::vector<Material> materials;
 	// mat 1 (default material)
@@ -83,14 +84,14 @@ TEST(TestSuite, SaveLoad)
 	EXPECT_EQ(res.getMaterials()[1].data.flags, f.getMaterials()[1].data.flags);
 
 	// test some camera stuff
-	EXPECT_EQ(res.getCamera().position, f.getCamera().position);
-	EXPECT_EQ(res.getCamera().far, f.getCamera().far);
-	EXPECT_EQ(res.getCamera().fov, f.getCamera().fov);
+	EXPECT_EQ(res.getCamera().data.position, f.getCamera().data.position);
+	EXPECT_EQ(res.getCamera().data.far, f.getCamera().data.far);
+	EXPECT_EQ(res.getCamera().data.fov, f.getCamera().data.fov);
 
 	// test some light stuff
 	EXPECT_EQ(res.getLights().size(), f.getLights().size());
-	EXPECT_EQ(res.getLights()[0].type, f.getLights()[0].type);
-	EXPECT_EQ(res.getLights()[1].type, f.getLights()[1].type);
+	EXPECT_EQ(res.getLights()[0].data.type, f.getLights()[0].data.type);
+	EXPECT_EQ(res.getLights()[1].data.type, f.getLights()[1].data.type);
 
 	// test some env stuff
 	EXPECT_EQ(res.getEnvironment().color, f.getEnvironment().color);
@@ -134,7 +135,8 @@ TEST(TestSuite, UnusedMaterials)
 	mesh.generateBoundingBoxes();
 	EXPECT_NO_THROW(mesh.verify());
 
-	Camera cam = Camera::Default();
+	Camera cam;
+	cam.data = CameraData::Default();
 
 	std::vector<Light> lights;
 
@@ -208,7 +210,8 @@ TEST(TestSuite, VerifyFail)
 	mesh.generateBoundingBoxes();
 	EXPECT_NO_THROW(mesh.verify());
 
-	Camera cam = Camera::Default();
+	Camera cam;
+	cam.data = CameraData::Default();
 
 	std::vector<Light> lights;
 
@@ -224,4 +227,22 @@ TEST(TestSuite, VerifyFail)
 	SceneFormat f(std::move(mesh), cam, lights, materials, env);
 
 	EXPECT_THROW(f.verify(), std::runtime_error);
+}
+
+TEST(TestSuite, PathSectionLoad)
+{
+	std::vector<PathSection> sections;
+	sections.push_back({ 2.0f, glm::vec3(1.0f) });
+	sections.push_back({ 7.0f, glm::vec3(5.0f) });
+	sections.push_back({ 1.0f, glm::vec3(2.0f) });
+	Path origPath(sections, 1.0f);
+	EXPECT_NO_THROW(origPath.verify());
+
+	hrsf::SceneFormat::savePath("testpath", origPath);
+	auto loadPath = hrsf::SceneFormat::loadPath("testpath");
+	EXPECT_NO_THROW(loadPath.verify());
+
+	EXPECT_EQ(origPath.getSections().size(), loadPath.getSections().size());
+	EXPECT_EQ(origPath.getSections()[0].time, loadPath.getSections()[0].time);
+	EXPECT_EQ(origPath.getSections()[2].position, loadPath.getSections()[2].position);
 }

@@ -56,6 +56,27 @@ namespace hrsf
 			// get spline
 			return getBezierPoint(left, cp1, cp2, right, m_time / m_sections[m_curSection].time);
 		}
+		const std::vector<PathSection>& getSections() const
+		{
+			return m_sections;
+		}
+		float getScale() const
+		{
+			return m_scale;
+		}
+		bool isStatic() const
+		{
+			return m_sections.empty();
+		}
+		// throws an exception if negative section times are present
+		void verify() const
+		{
+			for (auto& s : m_sections)
+			{
+				if (s.time <= 0.0f)
+					throw std::runtime_error("path section times must be greater than zero");
+			}
+		}
 	private:
 		// returns path anchor point (there is one more point the section because paths always start at vec3(0))
 		glm::vec3 getPoint(size_t index) const

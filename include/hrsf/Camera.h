@@ -1,10 +1,11 @@
 #pragma once
 #include <array>
 #include <glm/vec3.hpp>
+#include "Path.h"
 
 namespace hrsf
 {
-	struct Camera
+	struct CameraData
 	{
 		enum Type
 		{
@@ -23,9 +24,9 @@ namespace hrsf
 
 		glm::vec3 up; // up vector
 
-		static const Camera& Default()
+		static const CameraData& Default()
 		{
-			static const Camera c = {
+			static const CameraData c = {
 				Pinhole,
 				{0.0f, 0.0f, 0.0f},
 				{0.0f, 0.0f, 1.0f},
@@ -37,5 +38,12 @@ namespace hrsf
 				};
 			return c;
 		}
+	};
+
+	struct Camera
+	{
+		CameraData data;
+		Path positionPath; // automated camera movement
+		Path lookAtPath;
 	};
 }

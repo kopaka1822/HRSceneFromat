@@ -47,6 +47,7 @@ namespace hrsf
 		/// \brief loads the environment from the filesystem
 		/// \param filename filename without extension
 		static Environment loadEnvironment(fs::path filename);
+		static Path loadPath(fs::path filename);
 		/// \brief saves the scene.
 		/// \param filename output files are: filename.json, filename.bmf
 		void save(const fs::path& filename) const;
@@ -54,11 +55,13 @@ namespace hrsf
 		static void saveMaterials(const fs::path& filename, const std::vector<Material>& materials);
 		static void saveLights(const fs::path& filename, const std::vector<Light>& lights);
 		static void saveEnvironment(const fs::path& filename, const Environment& env);
+		static void savePath(const fs::path& filename, const Path& path);
 	private:
 		static json getMaterialsJson(const std::vector<Material>& materials, const fs::path& root);
 		static json getLightsJson(const std::vector<Light>& lights);
 		static json getCameraJson(const Camera& camera);
 		static json getEnvironmentJson(const Environment& env, const fs::path& root);
+		static json getPathJson(const Path& path);
 		static json openFile(fs::path filename);
 		static void saveFile(const json& j, fs::path filename);
 		static Material loadMaterialJson(const json& j, const fs::path& root);
@@ -67,6 +70,8 @@ namespace hrsf
 		static Environment loadEnvironmentJson(const json& j, const fs::path& root);
 		static std::vector<Light> loadLightsJson(const json& j);
 		static Light loadLightJson(const json& j);
+		static Path loadPathJson(const json& j);
+		static PathSection loadPathSectionJson(const json& j);
 
 		/// \brief retrieves the value from the json. if the json does not contain the value
 		/// the default value is returned instead
@@ -74,6 +79,8 @@ namespace hrsf
 		static T getOrDefault(const json& j, const char* name, T defaultValue);
 		template<>
 		static glm::vec3 getOrDefault(const json& j, const char* name, glm::vec3 defaultValue);
+		static Path getPathOrDefault(const json& j, const char* name);
+
 		static fs::path getFilename(const json& j, const char* name, const fs::path& root);
 
 		static glm::vec3 getVec3(const json& j);
@@ -88,7 +95,7 @@ namespace hrsf
 		std::vector<Material> m_materials;
 		Environment m_environment;
 
-		static constexpr size_t s_version = 1;
+		static constexpr size_t s_version = 2;
 	};
 
 	inline SceneFormat::SceneFormat(bmf::BinaryMesh mesh, Camera cam, std::vector<Light> lights,
@@ -189,6 +196,13 @@ namespace hrsf
 			if (s.materialId >= m_materials.size())
 				throw std::runtime_error("material id out of bound: " + std::to_string(s.materialId));
 		}
+
+		// test that path have no negative times
+		for (const auto& l : m_lights)
+			l.path.verify();
+
+		m_camera.lookAtPath.verify();
+		m_camera.positionPath.verify();
 	}
 
 	inline SceneFormat SceneFormat::load(fs::path filename)
@@ -240,6 +254,11 @@ namespace hrsf
 		return loadEnvironmentJson(openFile(filename), filename.parent_path());
 	}
 
+	inline Path SceneFormat::loadPath(fs::path filename)
+	{
+		return loadPathJson(openFile(filename));
+	}
+
 	inline void SceneFormat::save(const fs::path& filename) const
 	{
 		const fs::path binaryName = filename.string() + ".bmf";
@@ -275,6 +294,11 @@ namespace hrsf
 	inline void SceneFormat::saveEnvironment(const fs::path& filename, const Environment& env)
 	{
 		saveFile(getEnvironmentJson(env, filename.parent_path()), filename);
+	}
+
+	inline void SceneFormat::savePath(const fs::path& filename, const Path& path)
+	{
+		saveFile(getPathJson(path), filename);
 	}
 
 	inline SceneFormat::json SceneFormat::getMaterialsJson(const std::vector<Material>& materials, const fs::path& root)
@@ -330,24 +354,27 @@ namespace hrsf
 		{
 			json j;
 			std::string strType;
-			switch (l.type)
+			switch (l.data.type)
 			{
-			case Light::Point:
+			case LightData::Point:
 				strType = "Point";
-				writeVec3(j["position"], l.position);
-				j["linearFalloff"] = l.linearFalloff;
-				j["quadFalloff"] = l.quadFalloff;
+				writeVec3(j["position"], l.data.position);
+				j["linearFalloff"] = l.data.linearFalloff;
+				j["quadFalloff"] = l.data.quadFalloff;
 				break;
-			case Light::Directional:
+			case LightData::Directional:
 				strType = "Directional";
-				writeVec3(j["direction"], l.direction);
+				writeVec3(j["direction"], l.data.direction);
 				break;
 			default:
 				throw std::runtime_error("invalid light type");
 			}
 
 			j["type"] = strType;
-			writeVec3(j["color"], l.color);
+			writeVec3(j["color"], l.data.color);
+
+			if (!l.path.isStatic())
+				j["path"] = getPathJson(l.path);
 
 			res.push_back(std::move(j));
 		}
@@ -359,24 +386,29 @@ namespace hrsf
 	{
 		json j;
 		std::string strType;
-		switch (camera.type)
+		switch (camera.data.type)
 		{
-		case Camera::Pinhole:
+		case CameraData::Pinhole:
 			strType = "Pinhole";
 			break;
 		default: throw std::runtime_error("invalid camera type");
 		}
 
 		j["type"] = strType;
-		writeVec3(j["position"], camera.position);
-		writeVec3(j["direction"], camera.direction);
-		j["fov"] = camera.fov;
-		if (camera.near != Camera::Default().near)
-			j["near"] = camera.near;
-		if (camera.far != Camera::Default().far)
-			j["far"] = camera.far;
-		if (camera.up != Camera::Default().up)
-			writeVec3(j["up"], camera.up);
+		writeVec3(j["position"], camera.data.position);
+		writeVec3(j["direction"], camera.data.direction);
+		j["fov"] = camera.data.fov;
+		if (camera.data.near != CameraData::Default().near)
+			j["near"] = camera.data.near;
+		if (camera.data.far != CameraData::Default().far)
+			j["far"] = camera.data.far;
+		if (camera.data.up != CameraData::Default().up)
+			writeVec3(j["up"], camera.data.up);
+
+		if (!camera.positionPath.isStatic())
+			j["positionPath"] = getPathJson(camera.positionPath);
+		if (!camera.lookAtPath.isStatic())
+			j["lookAtPath"] = getPathJson(camera.lookAtPath);
 
 		return j;
 	}
@@ -391,6 +423,24 @@ namespace hrsf
 		if (!env.ambient.empty())
 			j["ambient"] = getRelativePath(root, env.ambient);
 
+		return j;
+	}
+
+	inline SceneFormat::json SceneFormat::getPathJson(const Path& path)
+	{
+		json j;
+		if (path.getScale() != 1.0f)
+			j["scale"] = path.getScale();
+		auto secj = json::array();
+		for(const auto& s : path.getSections())
+		{
+			json js;
+			js["time"] = s.time;
+			writeVec3(js["pos"], s.position);
+			secj.push_back(js);
+		}
+
+		j["sections"] = std::move(secj);
 		return j;
 	}
 
@@ -464,18 +514,23 @@ namespace hrsf
 
 	inline Camera SceneFormat::loadCameraJson(const json& j)
 	{
+		// data
 		Camera cam;
 		const auto strType = j["type"].get<std::string>();
 		if (strType == "Pinhole")
-			cam.type = Camera::Pinhole;
+			cam.data.type = CameraData::Pinhole;
 		else throw std::runtime_error("unknown camera type " + strType);
 
-		cam.position = getVec3(j["position"]);
-		cam.direction = getVec3(j["direction"]);
-		cam.fov = j["fov"].get<float>();
-		cam.near = getOrDefault(j, "near", Camera::Default().near);
-		cam.far = getOrDefault(j, "far", Camera::Default().far);
-		cam.up = getOrDefault(j, "up", Camera::Default().up);
+		cam.data.position = getVec3(j["position"]);
+		cam.data.direction = getVec3(j["direction"]);
+		cam.data.fov = j["fov"].get<float>();
+		cam.data.near = getOrDefault(j, "near", CameraData::Default().near);
+		cam.data.far = getOrDefault(j, "far", CameraData::Default().far);
+		cam.data.up = getOrDefault(j, "up", CameraData::Default().up);
+
+		// paths
+		cam.positionPath = getPathOrDefault(j, "positionPath");
+		cam.lookAtPath = getPathOrDefault(j, "lookAtPath");
 
 		return cam;
 	}
@@ -509,21 +564,50 @@ namespace hrsf
 		const auto strType = j["type"].get<std::string>();
 		if (strType == "Point")
 		{
-			l.type = Light::Point;
-			l.position = getVec3(j["position"]);
-			l.linearFalloff = j["linearFalloff"].get<float>();
-			l.quadFalloff = j["quadFalloff"].get<float>();
+			l.data.type = LightData::Point;
+			l.data.position = getVec3(j["position"]);
+			l.data.linearFalloff = j["linearFalloff"].get<float>();
+			l.data.quadFalloff = j["quadFalloff"].get<float>();
 		}
 		else if (strType == "Directional")
 		{
-			l.type = Light::Directional;
-			l.direction = getVec3(j["direction"]);
+			l.data.type = LightData::Directional;
+			l.data.direction = getVec3(j["direction"]);
 		}
 		else throw std::runtime_error("invalid light type " + strType);
 
-		l.color = getVec3(j["color"]);
+		l.data.color = getVec3(j["color"]);
+
+		l.path = getPathOrDefault(j, "path");
 
 		return l;
+	}
+
+	inline Path SceneFormat::loadPathJson(const json& j)
+	{
+		auto scale = getOrDefault(j, "scale", 1.0f);
+		std::vector<PathSection> sections;
+		auto secs = j.find("sections");
+		if(secs != j.end())
+		{
+			if (!secs->is_array())
+				throw std::runtime_error("sections must be an array");
+			sections.reserve(secs->size());
+			for(auto& s : *secs)
+			{
+				sections.emplace_back(loadPathSectionJson(s));
+			}
+		}
+
+		return Path(std::move(sections), scale);
+	}
+
+	inline PathSection SceneFormat::loadPathSectionJson(const json& j)
+	{
+		PathSection s;
+		s.time = j["time"].get<float>();
+		s.position = getVec3(j["pos"]);
+		return s;
 	}
 
 	template <class T>
@@ -542,6 +626,13 @@ namespace hrsf
 		auto it = j.find(name);
 		if (it == j.end()) return defaultValue;
 		return getVec3(it.value());
+	}
+
+	inline Path SceneFormat::getPathOrDefault(const json& j, const char* name)
+	{
+		auto it = j.find(name);
+		if (it == j.end()) return Path();
+		return loadPathJson(*it);
 	}
 
 	inline fs::path SceneFormat::getFilename(const json& j, const char* name, const fs::path& root)
