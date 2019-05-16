@@ -1,7 +1,7 @@
 #pragma once
 #include <array>
 #include <vector>
-#include "../../dependencies/bmf/dependencies/glm/glm/vec3.hpp"
+#include <glm/vec3.hpp>
 
 namespace hrsf
 {

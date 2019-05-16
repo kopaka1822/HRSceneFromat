@@ -2,6 +2,7 @@
 #include <string>
 #include <array>
 #include <filesystem>
+#include <glm/vec3.hpp>
 
 namespace hrsf
 {
@@ -23,25 +24,25 @@ namespace hrsf
 			Transparent = 2,
 		};
 
-		std::array<float, 3> ambient;
+		glm::vec3 ambient;
 		float roughness;
-		std::array<float, 3> diffuse;
+		glm::vec3 diffuse;
 		float occlusion;
-		std::array<float, 3> specular;
+		glm::vec3 specular;
 		float gloss; // glossiness for specular reflection
-		std::array<float, 3> emission;
+		glm::vec3 emission;
 		int flags; // bitflags from Flags enum
 
 		static const MaterialData& Default()
 		{
 			static const MaterialData d = {
-				1.0f, 1.0f, 1.0f,
+				{1.0f, 1.0f, 1.0f},
 				0.0f,
-				1.0f, 1.0f, 1.0f,
+				{1.0f, 1.0f, 1.0f},
 				1.0f,
-				0.0f, 0.0f, 0.0f,
+				{0.0f, 0.0f, 0.0f},
 				50.0f,
-				0.0f, 0.0f, 0.0f,
+				{0.0f, 0.0f, 0.0f},
 				None
 				};
 			return d;

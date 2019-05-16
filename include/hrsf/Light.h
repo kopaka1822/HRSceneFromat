@@ -1,4 +1,5 @@
 #pragma once
+#include <glm/vec3.hpp>
 
 namespace hrsf
 {
@@ -14,15 +15,15 @@ namespace hrsf
 		int type; // light type
 		union
 		{
-			std::array<float, 3> position; // for point light
-			std::array<float, 3> direction; // fir directional light
+			glm::vec3 position; // for point light
+			glm::vec3 direction; // fir directional light
 		};
 		
-		std::array<float, 3> color;
+		glm::vec3 color;
 		float linearFalloff;
 
 		float quadFalloff;
 		// padding to keep structure 16 byte aligned
-		std::array<float, 3> padding;
+		glm::vec3 padding;
 	};
 }

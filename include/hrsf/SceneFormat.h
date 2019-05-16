@@ -73,11 +73,11 @@ namespace hrsf
 		template<class T>
 		static T getOrDefault(const json& j, const char* name, T defaultValue);
 		template<>
-		static std::array<float, 3> getOrDefault(const json& j, const char* name, std::array<float, 3> defaultValue);
+		static glm::vec3 getOrDefault(const json& j, const char* name, glm::vec3 defaultValue);
 		static fs::path getFilename(const json& j, const char* name, const fs::path& root);
 
-		static std::array<float, 3> getVec3(const json& j);
-		static void writeVec3(json& j, const std::array<float, 3>& vec);
+		static glm::vec3 getVec3(const json& j);
+		static void writeVec3(json& j, const glm::vec3& vec);
 
 		static std::string getRelativePath(const fs::path& root, const fs::path& p);
 		static fs::path getAbsolutePath(const fs::path& root, const fs::path& p);
@@ -334,13 +334,13 @@ namespace hrsf
 			{
 			case Light::Point:
 				strType = "Point";
-				j["position"] = l.position;
+				writeVec3(j["position"], l.position);
 				j["linearFalloff"] = l.linearFalloff;
 				j["quadFalloff"] = l.quadFalloff;
 				break;
 			case Light::Directional:
 				strType = "Directional";
-				j["direction"] = l.direction;
+				writeVec3(j["direction"], l.direction);
 				break;
 			default:
 				throw std::runtime_error("invalid light type");
@@ -368,15 +368,15 @@ namespace hrsf
 		}
 
 		j["type"] = strType;
-		j["position"] = camera.position;
-		j["direction"] = camera.direction;
+		writeVec3(j["position"], camera.position);
+		writeVec3(j["direction"], camera.direction);
 		j["fov"] = camera.fov;
 		if (camera.near != Camera::Default().near)
 			j["near"] = camera.near;
 		if (camera.far != Camera::Default().far)
 			j["far"] = camera.far;
 		if (camera.up != Camera::Default().up)
-			j["up"] = camera.up;
+			writeVec3(j["up"], camera.up);
 
 		return j;
 	}
@@ -536,8 +536,8 @@ namespace hrsf
 	}
 
 	template <>
-	inline std::array<float, 3> SceneFormat::getOrDefault<std::array<float, 3>>(const json& j, const char* name,
-		std::array<float, 3> defaultValue)
+	inline glm::vec3 SceneFormat::getOrDefault<glm::vec3>(const json& j, const char* name,
+		glm::vec3 defaultValue)
 	{
 		auto it = j.find(name);
 		if (it == j.end()) return defaultValue;
@@ -552,30 +552,30 @@ namespace hrsf
 		return getAbsolutePath(root, it.value().get<std::string>());
 	}
 
-	inline std::array<float, 3> SceneFormat::getVec3(const json& j)
+	inline glm::vec3 SceneFormat::getVec3(const json& j)
 	{
-		std::array<float, 3> res;
 		if (j.is_array())
 		{
 			if (j.size() == 1)
-				res.fill(j[0].get<float>());
-			else if (j.size() == 3)
-				return j.get<std::array<float, 3>>();
-			else throw std::runtime_error("expected array with 3 or 1 element but got " + std::to_string(j.size()));
+				return glm::vec3(j[0].get<float>());
+			if (j.size() == 3)
+			{
+				auto tmp = j.get<std::array<float, 3>>();
+				return glm::vec3(tmp[0], tmp[1], tmp[2]);
+			}
+			throw std::runtime_error("expected array with 3 or 1 element but got " + std::to_string(j.size()));
 		}
-		else
-			res.fill(j.get<float>());
 
-		return res;
+		return glm::vec3(j.get<float>());
 	}
 
-	inline void SceneFormat::writeVec3(json& j, const std::array<float, 3>& vec)
+	inline void SceneFormat::writeVec3(json& j, const glm::vec3& vec)
 	{
 		// all values are equal?	
 		if (vec[0] == vec[1] && vec[1] == vec[2])
 			j = vec[0]; // write only single value
 		else
-			j = vec;
+			j = std::array<float, 3>{vec.x, vec.y, vec.z};
 	}
 
 	inline std::string SceneFormat::getRelativePath(const fs::path& root, const fs::path& p)
