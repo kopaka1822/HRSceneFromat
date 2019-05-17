@@ -37,8 +37,7 @@ TEST(TestSuite, SaveLoad)
 	// point light
 	lights.emplace_back(Light{ LightData::Point });
 	lights.back().data.position = { 0.0f, 30.0f, 0.0f };
-	lights.back().data.linearFalloff = 1.0f;
-	lights.back().data.quadFalloff = 10.0f;
+	lights.back().data.radius = 1.0f;
 	lights.back().data.color = { 1.0f, 0.0f, 0.0f };
 
 	// directional light

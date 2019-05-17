@@ -19,7 +19,9 @@ namespace hrsf
 			:
 		m_sections(std::move(section)),
 		m_scale(scale)
-		{}
+		{
+			m_isCircle = m_sections.empty()?false:m_sections.back().position == glm::vec3(0.0f);
+		}
 		Path() = default;
 		
 		void update(float dt)
@@ -81,9 +83,20 @@ namespace hrsf
 		// returns path anchor point (there is one more point the section because paths always start at vec3(0))
 		glm::vec3 getPoint(size_t index) const
 		{
-			size_t i = index % (m_sections.size() + 1);
-			if (i == 0) return glm::vec3(0.0f);
-			return m_sections[i - 1].position * m_scale;
+			if(m_isCircle)
+			{
+				// repeat points
+				size_t i = index % (m_sections.size() + 1);
+				if (i == 0) return glm::vec3(0.0f);
+				return m_sections[i - 1].position * m_scale;
+			}
+			else
+			{
+				// clamp start and end points
+				if (int(index) <= 0) return glm::vec3(0.0f);
+				return m_sections[std::min(index, m_sections.size() - 1)].position * m_scale;
+			}
+			
 		}
 		static glm::vec3 getBezierPoint(const glm::vec3& left, const glm::vec3& cp1, const glm::vec3& cp2, const glm::vec3& right, float t)
 		{
@@ -102,5 +115,6 @@ namespace hrsf
 		size_t m_curSection = 0;
 		float m_scale;
 		float m_time = 0.0f;
+		bool m_isCircle;
 	};
 }

@@ -21,11 +21,7 @@ namespace hrsf
 		};
 		
 		glm::vec3 color;
-		float linearFalloff;
-
-		float quadFalloff;
-		// padding to keep structure 16 byte aligned
-		glm::vec3 padding;
+		float radius; // for point light
 	};
 
 	struct Light

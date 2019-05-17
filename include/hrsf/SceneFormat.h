@@ -95,7 +95,7 @@ namespace hrsf
 		std::vector<Material> m_materials;
 		Environment m_environment;
 
-		static constexpr size_t s_version = 2;
+		static constexpr size_t s_version = 3;
 	};
 
 	inline SceneFormat::SceneFormat(bmf::BinaryMesh mesh, Camera cam, std::vector<Light> lights,
@@ -359,8 +359,7 @@ namespace hrsf
 			case LightData::Point:
 				strType = "Point";
 				writeVec3(j["position"], l.data.position);
-				j["linearFalloff"] = l.data.linearFalloff;
-				j["quadFalloff"] = l.data.quadFalloff;
+				j["radius"] = l.data.radius;
 				break;
 			case LightData::Directional:
 				strType = "Directional";
@@ -566,8 +565,7 @@ namespace hrsf
 		{
 			l.data.type = LightData::Point;
 			l.data.position = getVec3(j["position"]);
-			l.data.linearFalloff = j["linearFalloff"].get<float>();
-			l.data.quadFalloff = j["quadFalloff"].get<float>();
+			l.data.radius = j["radius"].get<float>();
 		}
 		else if (strType == "Directional")
 		{
