@@ -30,7 +30,7 @@ namespace hrsf
 
 			m_time += dt;
 			// find the section we are in at the moment
-			while(m_sections[m_curSection].time > m_time)
+			while(m_sections[m_curSection].time < m_time)
 			{
 				m_time -= m_sections[m_curSection].time;
 				m_curSection = (m_curSection + 1) % m_sections.size();
