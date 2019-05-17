@@ -136,6 +136,7 @@
     <ClInclude Include="..\include\hrsf\Material.h" />
     <ClInclude Include="..\include\hrsf\Path.h" />
     <ClInclude Include="..\include\hrsf\SceneFormat.h" />
+    <ClInclude Include="..\include\hrsf\srgb.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\dummy.cpp" />

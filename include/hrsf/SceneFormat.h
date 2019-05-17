@@ -7,6 +7,7 @@
 #include "../../dependencies/json/single_include/nlohmann/json.hpp"
 #include "Environment.h"
 #include <filesystem>
+#include "srgb.h"
 
 namespace hrsf
 {
@@ -95,7 +96,7 @@ namespace hrsf
 		std::vector<Material> m_materials;
 		Environment m_environment;
 
-		static constexpr size_t s_version = 3;
+		static constexpr size_t s_version = 4;
 	};
 
 	inline SceneFormat::SceneFormat(bmf::BinaryMesh mesh, Camera cam, std::vector<Light> lights,
@@ -321,18 +322,18 @@ namespace hrsf
 
 			// data
 			// always write diffuse
-			writeVec3(j["diffuse"], m.data.diffuse);
+			writeVec3(j["diffuse"], toSrgb(m.data.diffuse));
 			if (m.data.ambient != MaterialData::Default().ambient)
-				writeVec3(j["ambient"], m.data.ambient);
+				writeVec3(j["ambient"], toSrgb(m.data.ambient));
 			if (m.data.roughness != MaterialData::Default().roughness)
 				j["roughness"] = m.data.roughness;
 			if (m.data.occlusion != MaterialData::Default().occlusion)
 				j["occlusion"] = m.data.occlusion;
 			if (m.data.specular != MaterialData::Default().specular)
-				writeVec3(j["specular"], m.data.specular);
+				writeVec3(j["specular"], toSrgb(m.data.specular));
 			if (m.data.gloss != MaterialData::Default().gloss)
 				j["gloss"] = m.data.gloss;
-			if (m.data.emission != MaterialData::Default().emission)
+			if (m.data.emission != toSrgb(MaterialData::Default().emission))
 				writeVec3(j["emission"], m.data.emission);
 
 			// write flags as booleans
@@ -340,7 +341,9 @@ namespace hrsf
 			if (((MaterialData::Default().flags & MaterialData::Reflection) != 0) != reflection)
 				j["reflection"] = reflection;
 
-
+			const bool transparent = (m.data.flags & MaterialData::Transparent) != 0;
+			if (((MaterialData::Default().flags & MaterialData::Transparent) != 0) != transparent)
+				j["transparent"] = transparent;
 
 			res.push_back(std::move(j));
 		}
@@ -370,7 +373,7 @@ namespace hrsf
 			}
 
 			j["type"] = strType;
-			writeVec3(j["color"], l.data.color);
+			writeVec3(j["color"], toSrgb(l.data.color));
 
 			if (!l.path.isStatic())
 				j["path"] = getPathJson(l.path);
@@ -415,7 +418,12 @@ namespace hrsf
 	inline SceneFormat::json SceneFormat::getEnvironmentJson(const Environment& env, const fs::path& root)
 	{
 		json j;
-		writeVec3(j["color"], env.color);
+		writeVec3(j["color"], toSrgb(env.color));
+
+		if (env.ambientUp != Environment::Default().ambientUp)
+			writeVec3(j["ambientUp"], toSrgb(env.ambientUp));
+		if (env.ambientDown != Environment::Default().ambientDown)
+			writeVec3(j["ambientDown"], toSrgb(env.ambientDown));
 
 		if (!env.map.empty())
 			j["map"] = getRelativePath(root, env.map);
@@ -483,18 +491,22 @@ namespace hrsf
 		mat.textures.occlusion = getFilename(j, "occlusionTex", root);
 		
 		// data
-		mat.data.diffuse = getVec3(j["diffuse"]);
+		mat.data.ambient = fromSrgb(getOrDefault(j, "ambient", MaterialData::Default().ambient));
+		mat.data.diffuse = fromSrgb(getVec3(j["diffuse"]));
 		mat.data.roughness = getOrDefault(j, "roughness", MaterialData::Default().roughness);
 		mat.data.occlusion = getOrDefault(j, "occlusion", MaterialData::Default().occlusion);
-		mat.data.specular = getOrDefault(j, "specular", MaterialData::Default().specular);
+		mat.data.specular = fromSrgb(getOrDefault(j, "specular", MaterialData::Default().specular));
 		mat.data.gloss = getOrDefault(j, "gloss", MaterialData::Default().gloss);
-		mat.data.emission = getOrDefault(j, "emission", MaterialData::Default().emission);
+		mat.data.emission = fromSrgb(getOrDefault(j, "emission", MaterialData::Default().emission));
 
 		mat.data.flags = 0;
 
 		// reflection?
 		if (getOrDefault(j, "reflection", (MaterialData::Default().flags & MaterialData::Reflection) != 0))
 			mat.data.flags |= MaterialData::Reflection;
+
+		if (getOrDefault(j, "transparent", (MaterialData::Default().flags & MaterialData::Transparent) != 0))
+			mat.data.flags |= MaterialData::Transparent;
 
 		return mat;
 	}
@@ -537,7 +549,9 @@ namespace hrsf
 	inline Environment SceneFormat::loadEnvironmentJson(const json& j, const fs::path& root)
 	{
 		Environment env;
-		env.color = getVec3(j["color"]);
+		env.color = fromSrgb(getVec3(j["color"]));
+		env.ambientUp = fromSrgb(getOrDefault(j, "ambientUp", Environment::Default().ambientUp));
+		env.ambientDown = fromSrgb(getOrDefault(j, "ambientDown", Environment::Default().ambientDown));
 
 		env.map = getFilename(j, "map", root);
 		env.ambient = getFilename(j, "ambient", root);
@@ -574,7 +588,7 @@ namespace hrsf
 		}
 		else throw std::runtime_error("invalid light type " + strType);
 
-		l.data.color = getVec3(j["color"]);
+		l.data.color = fromSrgb(getVec3(j["color"]));
 
 		l.path = getPathOrDefault(j, "path");
 

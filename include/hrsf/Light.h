@@ -20,7 +20,7 @@ namespace hrsf
 			glm::vec3 direction; // fir directional light
 		};
 		
-		glm::vec3 color;
+		glm::vec3 color; // linear color space
 		float radius; // for point light
 	};
 

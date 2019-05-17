@@ -15,6 +15,7 @@ namespace hrsf
 	};
 
 	// material data that is aligned to 16 byte for the graphics card
+	// note all colors will be in linear color space after loading and displayed in srgb when saved
 	struct MaterialData
 	{
 		enum Flags

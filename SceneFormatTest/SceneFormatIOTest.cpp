@@ -58,7 +58,7 @@ TEST(TestSuite, SaveLoad)
 	materials.back().data.flags = MaterialData::Reflection;
 	materials.back().data.specular = { 1.0f, 0.0f, 1.0f };
 	
-	Environment env;
+	Environment env = Environment::Default();
 	env.color = { 0.4f, 0.6f, 1.0f };
 	env.map = "envmap.hdr";
 
@@ -79,7 +79,7 @@ TEST(TestSuite, SaveLoad)
 	// expect absolute path for texture
 	EXPECT_EQ(res.getMaterials()[1].textures.diffuse, 
 		std::filesystem::absolute(fs::path("subfolder/" + f.getMaterials()[1].textures.diffuse.string())));
-	EXPECT_EQ(res.getMaterials()[1].data.specular, f.getMaterials()[1].data.specular);
+	EXPECT_VEC3_EQUAL(res.getMaterials()[1].data.specular, f.getMaterials()[1].data.specular);
 	EXPECT_EQ(res.getMaterials()[1].data.flags, f.getMaterials()[1].data.flags);
 
 	// test some camera stuff
@@ -93,7 +93,7 @@ TEST(TestSuite, SaveLoad)
 	EXPECT_EQ(res.getLights()[1].data.type, f.getLights()[1].data.type);
 
 	// test some env stuff
-	EXPECT_EQ(res.getEnvironment().color, f.getEnvironment().color);
+	EXPECT_VEC3_EQUAL(res.getEnvironment().color, f.getEnvironment().color);
 	EXPECT_EQ(res.getEnvironment().map, 
 		std::filesystem::absolute(fs::path("subfolder/" + f.getEnvironment().map.string())));
 
@@ -165,7 +165,7 @@ TEST(TestSuite, UnusedMaterials)
 	materials.back().name = "mat4";
 	materials.back().data = MaterialData::Default();
 
-	Environment env;
+	Environment env = Environment::Default();
 	env.color = { 0.4f, 0.6f, 1.0f };
 
 	SceneFormat f(std::move(mesh), cam, lights, materials, env);
@@ -220,7 +220,7 @@ TEST(TestSuite, VerifyFail)
 	materials.back().name = "mat0";
 	materials.back().data = MaterialData::Default();
 
-	Environment env;
+	Environment env = Environment::Default();
 	env.color = { 0.4f, 0.6f, 1.0f };
 
 	SceneFormat f(std::move(mesh), cam, lights, materials, env);
