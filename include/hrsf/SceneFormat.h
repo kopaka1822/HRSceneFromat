@@ -17,12 +17,14 @@ namespace hrsf
 	{
 		using json = nlohmann::json;
 	public:
+		using MeshT = bmf::BinaryMesh16;
+
 		SceneFormat() = default;
-		SceneFormat(bmf::BinaryMesh mesh, Camera cam, std::vector<Light> lights, std::vector<Material> materials, Environment env);
+		SceneFormat(MeshT mesh, Camera cam, std::vector<Light> lights, std::vector<Material> materials, Environment env);
 		SceneFormat(SceneFormat&&) = default;
 		SceneFormat& operator=(SceneFormat&&) = default;
 
-		const bmf::BinaryMesh& getMesh() const;
+		const MeshT& getMesh() const;
 		const Camera& getCamera() const;
 		const std::vector<Light>& getLights() const;
 		const std::vector<Material>& getMaterials() const;
@@ -90,7 +92,7 @@ namespace hrsf
 		static std::string getRelativePath(const fs::path& root, const fs::path& p);
 		static fs::path getAbsolutePath(const fs::path& root, const fs::path& p);
 
-		bmf::BinaryMesh m_mesh;
+		MeshT m_mesh;
 		Camera m_camera;
 		std::vector<Light> m_lights;
 		std::vector<Material> m_materials;
@@ -99,14 +101,14 @@ namespace hrsf
 		static constexpr size_t s_version = 4;
 	};
 
-	inline SceneFormat::SceneFormat(bmf::BinaryMesh mesh, Camera cam, std::vector<Light> lights,
+	inline SceneFormat::SceneFormat(MeshT mesh, Camera cam, std::vector<Light> lights,
 		std::vector<Material> materials, Environment env)
 		:
 		m_mesh(std::move(mesh)), m_camera(cam), m_lights(std::move(lights)),
 		m_materials(std::move(materials)), m_environment(env)
 	{}
 
-	inline const bmf::BinaryMesh& SceneFormat::getMesh() const
+	inline const SceneFormat::MeshT& SceneFormat::getMesh() const
 	{
 		return m_mesh;
 	}
@@ -218,7 +220,7 @@ namespace hrsf
 		const auto directory = absolute(filename).parent_path();
 		const fs::path binaryName = j["scene"].get<std::string>();
 
-		auto bmf = bmf::BinaryMesh::loadFromFile(getAbsolutePath(directory, binaryName).string());
+		auto bmf = MeshT::loadFromFile(getAbsolutePath(directory, binaryName).string());
 
 		// load camera etc.
 		auto camera = loadCameraJson(j["camera"]);

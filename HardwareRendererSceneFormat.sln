@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.572
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28917.181
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HardwareRendererSceneFormat", "HardwareRendererSceneFormat\HardwareRendererSceneFormat.vcxproj", "{B936D831-0F4E-45A3-9DA2-43AA4D05AFF5}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SceneFormatTest", "SceneFormatTest\SceneFormatTest.vcxproj", "{C43B4774-233C-43E9-A02C-4E9893FD5B4F}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BinaryMeshFormat", "dependencies\bmf\BinaryMeshFormat\BinaryMeshFormat.vcxproj", "{45231001-F53F-4EFD-8194-25A0C34159D1}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SceneFormatTest", "SceneFormatTest\SceneFormatTest.vcxproj", "{7DB10CFC-489A-428F-99E5-6FE000DA7989}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,14 +25,6 @@ Global
 		{B936D831-0F4E-45A3-9DA2-43AA4D05AFF5}.Release|x64.Build.0 = Release|x64
 		{B936D831-0F4E-45A3-9DA2-43AA4D05AFF5}.Release|x86.ActiveCfg = Release|Win32
 		{B936D831-0F4E-45A3-9DA2-43AA4D05AFF5}.Release|x86.Build.0 = Release|Win32
-		{C43B4774-233C-43E9-A02C-4E9893FD5B4F}.Debug|x64.ActiveCfg = Debug|x64
-		{C43B4774-233C-43E9-A02C-4E9893FD5B4F}.Debug|x64.Build.0 = Debug|x64
-		{C43B4774-233C-43E9-A02C-4E9893FD5B4F}.Debug|x86.ActiveCfg = Debug|Win32
-		{C43B4774-233C-43E9-A02C-4E9893FD5B4F}.Debug|x86.Build.0 = Debug|Win32
-		{C43B4774-233C-43E9-A02C-4E9893FD5B4F}.Release|x64.ActiveCfg = Release|x64
-		{C43B4774-233C-43E9-A02C-4E9893FD5B4F}.Release|x64.Build.0 = Release|x64
-		{C43B4774-233C-43E9-A02C-4E9893FD5B4F}.Release|x86.ActiveCfg = Release|Win32
-		{C43B4774-233C-43E9-A02C-4E9893FD5B4F}.Release|x86.Build.0 = Release|Win32
 		{45231001-F53F-4EFD-8194-25A0C34159D1}.Debug|x64.ActiveCfg = Debug|x64
 		{45231001-F53F-4EFD-8194-25A0C34159D1}.Debug|x64.Build.0 = Debug|x64
 		{45231001-F53F-4EFD-8194-25A0C34159D1}.Debug|x86.ActiveCfg = Debug|Win32
@@ -41,6 +33,14 @@ Global
 		{45231001-F53F-4EFD-8194-25A0C34159D1}.Release|x64.Build.0 = Release|x64
 		{45231001-F53F-4EFD-8194-25A0C34159D1}.Release|x86.ActiveCfg = Release|Win32
 		{45231001-F53F-4EFD-8194-25A0C34159D1}.Release|x86.Build.0 = Release|Win32
+		{7DB10CFC-489A-428F-99E5-6FE000DA7989}.Debug|x64.ActiveCfg = Debug|x64
+		{7DB10CFC-489A-428F-99E5-6FE000DA7989}.Debug|x64.Build.0 = Debug|x64
+		{7DB10CFC-489A-428F-99E5-6FE000DA7989}.Debug|x86.ActiveCfg = Debug|Win32
+		{7DB10CFC-489A-428F-99E5-6FE000DA7989}.Debug|x86.Build.0 = Debug|Win32
+		{7DB10CFC-489A-428F-99E5-6FE000DA7989}.Release|x64.ActiveCfg = Release|x64
+		{7DB10CFC-489A-428F-99E5-6FE000DA7989}.Release|x64.Build.0 = Release|x64
+		{7DB10CFC-489A-428F-99E5-6FE000DA7989}.Release|x86.ActiveCfg = Release|Win32
+		{7DB10CFC-489A-428F-99E5-6FE000DA7989}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

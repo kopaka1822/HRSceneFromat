@@ -14,16 +14,16 @@ TEST(TestSuite, SaveLoad)
 		1.0f, 0.0f, 2.0f, 0.7f, 0.9f, // vertex 4
 		1.0f, 0.0f, 2.0f, 0.7f, 0.9f, // vertex 5
 	};
-	const std::vector<uint32_t> indices = {
+	const std::vector<uint16_t> indices = {
 		0, 1, 2, // triangle 1
 		2, 1, 0, // triangle 2
 	};
-	const std::vector<bmf::BinaryMesh::Shape> shapes = {
-		bmf::BinaryMesh::Shape{0, 3, 0, 3, /*0, 1,*/ 0}, // shape
-		bmf::BinaryMesh::Shape{3, 3, 3, 3, /*1, 1,*/ 1}, // shape
+	const std::vector<bmf::Shape> shapes = {
+		bmf::Shape{0, 3, 0, 3, /*0, 1,*/ 0}, // shape
+		bmf::Shape{3, 3, 3, 3, /*1, 1,*/ 1}, // shape
 	};
 
-	bmf::BinaryMesh mesh(bmf::Position | bmf::Texcoord0, vertices, indices, shapes);// , { glm::vec3(1.0f), glm::vec3(1.0f) });
+	SceneFormat::MeshT mesh(bmf::Position | bmf::Texcoord0, vertices, indices, shapes);// , { glm::vec3(1.0f), glm::vec3(1.0f) });
 	mesh.generateBoundingBoxes();
 	EXPECT_NO_THROW(mesh.verify());
 
@@ -119,18 +119,18 @@ TEST(TestSuite, UnusedMaterials)
 		1.0f, 0.0f, 1.0f, // vertex 2
 		0.0f, 1.0f, 0.0f, // vertex 3
 	};
-	const std::vector<uint32_t> indices = {
+	const std::vector<uint16_t> indices = {
 		0, 1, 2, // triangle 1
 		0, 1, 2, // triangle 1
 		0, 1, 2, // triangle 1
 	};
-	const std::vector<bmf::BinaryMesh::Shape> shapes = {
-		bmf::BinaryMesh::Shape{0, 3, 0, 3, /*0,1,*/0},
-		bmf::BinaryMesh::Shape{0, 3, 3, 3, /*1,1,*/1},
-		bmf::BinaryMesh::Shape{0, 3, 6, 3, /*2,1,*/3},
+	const std::vector<bmf::Shape> shapes = {
+		bmf::Shape{0, 3, 0, 3, /*0,1,*/0},
+		bmf::Shape{0, 3, 3, 3, /*1,1,*/1},
+		bmf::Shape{0, 3, 6, 3, /*2,1,*/3},
 	};
 
-	bmf::BinaryMesh mesh(bmf::Position, vertices, indices, shapes);//, {glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f) });
+	SceneFormat::MeshT mesh(bmf::Position, vertices, indices, shapes);//, {glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f) });
 	mesh.generateBoundingBoxes();
 	EXPECT_NO_THROW(mesh.verify());
 
@@ -196,16 +196,16 @@ TEST(TestSuite, VerifyFail)
 		1.0f, 0.0f, 1.0f, // vertex 2
 		0.0f, 1.0f, 0.0f, // vertex 3
 	};
-	const std::vector<uint32_t> indices = {
+	const std::vector<uint16_t> indices = {
 		0, 1, 2, // triangle 1
 		0, 1, 2, // triangle 2
 	};
-	const std::vector<bmf::BinaryMesh::Shape> shapes = {
-		bmf::BinaryMesh::Shape{0, 3, 0, 3, /*0,1,*/0},
-		bmf::BinaryMesh::Shape{0, 3, 3, 3, /*1,1,*/1}, // out of bound material
+	const std::vector<bmf::Shape> shapes = {
+		bmf::Shape{0, 3, 0, 3, /*0,1,*/0},
+		bmf::Shape{0, 3, 3, 3, /*1,1,*/1}, // out of bound material
 	};
 
-	bmf::BinaryMesh mesh(bmf::Position, vertices, indices, shapes);// , { glm::vec3(1.0f) , glm::vec3(1.0f) });
+	SceneFormat::MeshT mesh(bmf::Position, vertices, indices, shapes);// , { glm::vec3(1.0f) , glm::vec3(1.0f) });
 	mesh.generateBoundingBoxes();
 	EXPECT_NO_THROW(mesh.verify());
 
