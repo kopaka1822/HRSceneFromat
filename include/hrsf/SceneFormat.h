@@ -69,11 +69,11 @@ namespace hrsf
 		static void saveFile(const json& j, fs::path filename);
 		static Material loadMaterialJson(const json& j, const fs::path& root);
 		static std::vector<Material> loadMaterialsJson(const json& j, const fs::path& root);
-		static Camera loadCameraJson(const json& j);
+		static Camera loadCameraJson(const json& j, const fs::path& root);
 		static Environment loadEnvironmentJson(const json& j, const fs::path& root);
-		static std::vector<Light> loadLightsJson(const json& j);
-		static Light loadLightJson(const json& j);
-		static Path loadPathJson(const json& j);
+		static std::vector<Light> loadLightsJson(const json& j, const fs::path& root);
+		static Light loadLightJson(const json& j, const fs::path& root);
+		static Path loadPathJson(const json& j, const fs::path& root);
 		static PathSection loadPathSectionJson(const json& j);
 
 		/// \brief retrieves the value from the json. if the json does not contain the value
@@ -82,7 +82,7 @@ namespace hrsf
 		static T getOrDefault(const json& j, const char* name, T defaultValue);
 		template<>
 		static glm::vec3 getOrDefault(const json& j, const char* name, glm::vec3 defaultValue);
-		static Path getPathOrDefault(const json& j, const char* name);
+		static Path getPathOrDefault(const json& j, const char* name, const fs::path& root);
 
 		static fs::path getFilename(const json& j, const char* name, const fs::path& root);
 
@@ -223,10 +223,10 @@ namespace hrsf
 		auto bmf = MeshT::loadFromFile(getAbsolutePath(directory, binaryName).string());
 
 		// load camera etc.
-		auto camera = loadCameraJson(j["camera"]);
+		auto camera = loadCameraJson(j["camera"], directory);
 		auto env = loadEnvironmentJson(j["environment"], directory);
 		auto materials = loadMaterialsJson(j["materials"], directory);
-		auto lights = loadLightsJson(j["lights"]);
+		auto lights = loadLightsJson(j["lights"], directory);
 
 		return SceneFormat(
 			std::move(bmf),
@@ -239,7 +239,7 @@ namespace hrsf
 
 	inline Camera SceneFormat::loadCamera(fs::path filename)
 	{
-		return loadCameraJson(openFile(filename));
+		return loadCameraJson(openFile(filename), absolute(filename).parent_path());
 	}
 
 	inline std::vector<Material> SceneFormat::loadMaterials(fs::path filename)
@@ -249,7 +249,7 @@ namespace hrsf
 
 	inline std::vector<Light> SceneFormat::loadLights(fs::path filename)
 	{
-		return loadLightsJson(openFile(filename));
+		return loadLightsJson(openFile(filename), absolute(filename).parent_path());
 	}
 
 	inline Environment SceneFormat::loadEnvironment(fs::path filename)
@@ -259,7 +259,7 @@ namespace hrsf
 
 	inline Path SceneFormat::loadPath(fs::path filename)
 	{
-		return loadPathJson(openFile(filename));
+		return loadPathJson(openFile(filename), absolute(filename).parent_path());
 	}
 
 	inline void SceneFormat::save(const fs::path& filename) const
@@ -515,6 +515,10 @@ namespace hrsf
 
 	inline std::vector<Material> SceneFormat::loadMaterialsJson(const json& j, const fs::path& root)
 	{
+		// filename node?
+		if(j.is_string())
+			return loadMaterials(getAbsolutePath(root, j.get<std::string>()));
+
 		std::vector<Material> materials;
 		if (!j.is_array())
 			throw std::runtime_error("materials must be an array");
@@ -525,8 +529,11 @@ namespace hrsf
 		return materials;
 	}
 
-	inline Camera SceneFormat::loadCameraJson(const json& j)
+	inline Camera SceneFormat::loadCameraJson(const json& j, const fs::path& root)
 	{
+		if(j.is_string())
+			return loadCamera(getAbsolutePath(root, j.get<std::string>()));
+
 		// data
 		Camera cam;
 		const auto strType = j["type"].get<std::string>();
@@ -542,14 +549,17 @@ namespace hrsf
 		cam.data.up = getOrDefault(j, "up", CameraData::Default().up);
 
 		// paths
-		cam.positionPath = getPathOrDefault(j, "positionPath");
-		cam.lookAtPath = getPathOrDefault(j, "lookAtPath");
+		cam.positionPath = getPathOrDefault(j, "positionPath", root);
+		cam.lookAtPath = getPathOrDefault(j, "lookAtPath", root);
 
 		return cam;
 	}
 
 	inline Environment SceneFormat::loadEnvironmentJson(const json& j, const fs::path& root)
 	{
+		if(j.is_string())
+			return loadEnvironment(getAbsolutePath(root, j.get<std::string>()));
+
 		Environment env;
 		env.color = fromSrgb(getVec3(j["color"]));
 		env.ambientUp = fromSrgb(getOrDefault(j, "ambientUp", Environment::Default().ambientUp));
@@ -561,19 +571,22 @@ namespace hrsf
 		return env;
 	}
 
-	inline std::vector<Light> SceneFormat::loadLightsJson(const json& j)
+	inline std::vector<Light> SceneFormat::loadLightsJson(const json& j, const fs::path& root)
 	{
+		if(j.is_string())
+			return loadLights(getAbsolutePath(root, j.get<std::string>()));
+
 		std::vector<Light> lights;
 		if (!j.is_array())
 			throw std::runtime_error("lights must be an array");
 		lights.reserve(j.size());
 		for (const auto& l : j)
-			lights.emplace_back(loadLightJson(l));
+			lights.emplace_back(loadLightJson(l, root));
 
 		return lights;
 	}
 
-	inline Light SceneFormat::loadLightJson(const json& j)
+	inline Light SceneFormat::loadLightJson(const json& j, const fs::path& root)
 	{
 		Light l;
 		const auto strType = j["type"].get<std::string>();
@@ -592,13 +605,16 @@ namespace hrsf
 
 		l.data.color = fromSrgb(getVec3(j["color"]));
 
-		l.path = getPathOrDefault(j, "path");
+		l.path = getPathOrDefault(j, "path", root);
 
 		return l;
 	}
 
-	inline Path SceneFormat::loadPathJson(const json& j)
+	inline Path SceneFormat::loadPathJson(const json& j, const fs::path& root)
 	{
+		if(j.is_string())
+			return loadPath(getAbsolutePath(root, j.get<std::string>()));
+
 		auto scale = getOrDefault(j, "scale", 1.0f);
 		std::vector<PathSection> sections;
 		auto secs = j.find("sections");
@@ -642,11 +658,11 @@ namespace hrsf
 		return getVec3(it.value());
 	}
 
-	inline Path SceneFormat::getPathOrDefault(const json& j, const char* name)
+	inline Path SceneFormat::getPathOrDefault(const json& j, const char* name, const fs::path& root)
 	{
 		auto it = j.find(name);
 		if (it == j.end()) return Path();
-		return loadPathJson(*it);
+		return loadPathJson(*it, root);
 	}
 
 	inline fs::path SceneFormat::getFilename(const json& j, const char* name, const fs::path& root)
