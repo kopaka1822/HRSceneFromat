@@ -163,11 +163,12 @@ namespace hrsf
 		return loadPathJson(openFile(filename), absolute(filename).parent_path());
 	}
 
-	void SceneFormat::save(const fs::path& filename, bool singleFile) const
+	void SceneFormat::save(const fs::path& filename, bool singleFile, Component components) const
 	{
 		const fs::path binaryName = filename.string() + ".bmf";
 		const fs::path rootDirectory = filename.parent_path();
-		m_mesh.saveToFile(binaryName.string());
+		if(components & Component::Mesh)
+			m_mesh.saveToFile(binaryName.string());
 
 		json j;
 		j["version"] = s_version;
@@ -180,18 +181,26 @@ namespace hrsf
 
 		if (singleFile)
 		{
-			j["materials"] = move(mats);
-			j["lights"] = move(lights);
-			j["camera"] = move(camera);
-			j["environment"] = move(env);
+			if(components & Component::Material)
+				j["materials"] = move(mats);
+			if(components & Component::Lights)
+				j["lights"] = move(lights);
+			if(components & Component::Camera)
+				j["camera"] = move(camera);
+			if(components & Component::Environment)
+				j["environment"] = move(env);
 		}
 		else
 		{
 			// safe components in files first
-			saveFile(mats, filename.string() + "_material");
-			saveFile(lights, filename.string() + "_light");
-			saveFile(camera, filename.string() + "_camera");
-			saveFile(env, filename.string() + "_env");
+			if (components & Component::Material)
+				saveFile(mats, filename.string() + "_material");
+			if (components & Component::Lights)
+				saveFile(lights, filename.string() + "_light");
+			if (components & Component::Camera)
+				saveFile(camera, filename.string() + "_camera");
+			if (components & Component::Environment)
+				saveFile(env, filename.string() + "_env");
 
 			// redirect to files
 			const auto bareName = filename.filename().string();

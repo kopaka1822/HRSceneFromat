@@ -13,6 +13,17 @@ namespace hrsf
 {
 	namespace fs = std::filesystem;
 
+	enum class Component : uint32_t
+	{
+		None = 0,
+		Mesh = 1,
+		Camera = 1 << 1,
+		Lights = 1 << 2,
+		Material = 1 << 3,
+		Environment = 1 << 4,
+		All = 0xFFFFFFFF
+	};
+
 	class SceneFormat
 	{
 		using json = nlohmann::json;
@@ -53,7 +64,10 @@ namespace hrsf
 		static Path loadPath(fs::path filename);
 		/// \brief saves the scene.
 		/// \param filename output files are: filename.json, filename.bmf
-		void save(const fs::path& filename, bool singleFile) const;
+		/// \param singleFile if false, the json for each component will be put in a different file
+		/// \param components components that will be written into the file.
+		///        If a component is missing and singleFile is false, the filename reference will be written but not the component file itself.
+		void save(const fs::path& filename, bool singleFile, Component components = Component::All) const;
 		static void saveCamera(const fs::path& filename, const Camera& camera);
 		static void saveMaterials(const fs::path& filename, const std::vector<Material>& materials);
 		static void saveLights(const fs::path& filename, const std::vector<Light>& lights);
@@ -100,4 +114,14 @@ namespace hrsf
 
 		static constexpr size_t s_version = 4;
 	};
+
+	inline Component operator|(Component a, Component b)
+	{
+		return Component(uint32_t(a) | uint32_t(b));
+	}
+
+	inline bool operator&(Component a, Component b)
+	{
+		return (uint32_t(a) & uint32_t(b)) != 0;
+	}
 }
