@@ -34,7 +34,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\dummy.cpp">
+    <ClCompile Include="..\src\SceneFormat.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>

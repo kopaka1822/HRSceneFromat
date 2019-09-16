@@ -139,7 +139,7 @@
     <ClInclude Include="..\include\hrsf\srgb.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\dummy.cpp" />
+    <ClCompile Include="..\src\SceneFormat.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\dependencies\bmf\BinaryMeshFormat\BinaryMeshFormat.vcxproj">

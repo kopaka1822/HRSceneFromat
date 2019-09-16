@@ -262,3 +262,4 @@ __pycache__/
 /SceneFormatTest/subfolder/test.bmf
 /SceneFormatTest/subfolder/test.json
 /SceneFormatTest/testpath.json
+/SceneFormatTest/subfolder/*.json

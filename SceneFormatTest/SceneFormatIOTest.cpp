@@ -1,10 +1,14 @@
 #include "pch.h"
-#include <glm/vec3.hpp>
 
 #define TestSuite SceneFormatIOTest
 
 TEST(TestSuite, SaveLoad) 
 {
+	bool useSingleFile = false;
+	do
+	{
+	
+
 	// dummy mesh
 	const std::vector<float> vertices = {
 		0.0f, 0.0f, 0.0f, 0.0f, 0.0f, // vertex 0
@@ -65,7 +69,7 @@ TEST(TestSuite, SaveLoad)
 	SceneFormat f(std::move(mesh), cam, lights, materials, env);
 
 	// save file
-	f.save("subfolder/test");
+	f.save("subfolder/test", useSingleFile);
 
 	// load file 
 	SceneFormat res;
@@ -103,6 +107,9 @@ TEST(TestSuite, SaveLoad)
 	EXPECT_EQ(res.getMesh().getIndices(), f.getMesh().getIndices());
 	EXPECT_EQ(res.getMesh().getVertices(), f.getMesh().getVertices());
 	EXPECT_EQ(res.getMesh().getShapes().size(), f.getMesh().getShapes().size());
+
+	useSingleFile = !useSingleFile;
+	} while (useSingleFile);
 }
 
 TEST(TestSuite, UnusedMaterials)
