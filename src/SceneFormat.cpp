@@ -2,16 +2,16 @@
 
 namespace hrsf
 {
-	SceneFormat::SceneFormat(MeshT mesh, Camera cam, std::vector<Light> lights,
+	SceneFormat::SceneFormat(std::vector<Mesh> meshes, Camera cam, std::vector<Light> lights,
 		std::vector<Material> materials, Environment env)
 		:
-		m_mesh(std::move(mesh)), m_camera(cam), m_lights(std::move(lights)),
+		m_meshes(std::move(meshes)), m_camera(cam), m_lights(std::move(lights)),
 		m_materials(std::move(materials)), m_environment(env)
 	{}
 
-	const SceneFormat::MeshT& SceneFormat::getMesh() const
+	const std::vector<Mesh>& SceneFormat::getMeshes() const
 	{
-		return m_mesh;
+		return m_meshes;
 	}
 
 	const Camera& SceneFormat::getCamera() const
@@ -49,9 +49,24 @@ namespace hrsf
 	{
 		std::vector<bool> isUsed(m_materials.size(), false);
 
-		for (const auto& s : m_mesh.getShapes())
+		for(const auto& m : m_meshes)
 		{
-			isUsed[s.materialId] = true;
+			if (m.type == Mesh::Triangle)
+			{
+				for (const auto& s : m.triangle.getShapes())
+				{
+					isUsed[s.materialId] = true;
+				}
+			}
+			else if (m.type == Mesh::Billboard)
+			{
+				if(!(m.billboard.getAttributes() & bmf::Material)) continue;
+				for (const auto& matId : m.billboard.getMaterialAttribBuffer())
+				{
+					isUsed[matId] = true;
+				}
+			}
+			else assert(false);
 		}
 
 		if (std::all_of(isUsed.begin(), isUsed.end(), [](bool used) {return used; }))
@@ -71,9 +86,31 @@ namespace hrsf
 			}
 		}
 
-		for (auto& s : m_mesh.getShapes())
+		// adjust vertices
+		for(auto& m : m_meshes)
 		{
-			s.materialId = materialLookup[s.materialId];
+			if(m.type == Mesh::Triangle)
+			{
+				for (auto& s : m.triangle.getShapes())
+				{
+					s.materialId = materialLookup[s.materialId];
+				}
+			}
+			else if(m.type == Mesh::Billboard) // this is more complicated...
+			{
+				if (!(m.billboard.getAttributes() & bmf::Material)) continue;
+				auto& verts = m.billboard.getVertices();
+				if(verts.empty()) continue;
+				// change the material id of each vertex attribute
+				auto it = verts.begin() + bmf::getAttributeElementOffset(m.billboard.getAttributes(), bmf::Material);
+				const auto stride = bmf::getAttributeElementStride(m.billboard.getAttributes());
+				const auto vertexCount = verts.size() / stride;
+				for(uint32_t i = 0; i < vertexCount; ++i)
+				{
+					*it = bmf::asFloat(materialLookup[bmf::asInt(*it)]);
+					it += stride;
+				}
+			}
 		}
 
 		// remove unused materials
@@ -92,14 +129,37 @@ namespace hrsf
 	void SceneFormat::verify() const
 	{
 		// verify mesh
-		m_mesh.verify();
-
-		// test that materials are not out of bound
-		for (const auto& s : m_mesh.getShapes())
+		for(const auto& m : m_meshes)
 		{
-			if (s.materialId >= m_materials.size())
-				throw std::runtime_error("material id out of bound: " + std::to_string(s.materialId));
+			if (m.type == Mesh::Triangle)
+			{
+				m.triangle.verify();
+				// test that materials are not out of bound
+				for (const auto& s : m.triangle.getShapes())
+				{
+					if (s.materialId >= m_materials.size())
+						throw std::runtime_error("material id out of bound: " + std::to_string(s.materialId));
+				}
+			}
+			else if (m.type == Mesh::Billboard)
+			{
+				m.billboard.verify();
+				if(m.billboard.getAttributes() & bmf::Material)
+				{
+					auto mats = m.billboard.getMaterialAttribBuffer();
+					for(const auto& matId : mats)
+					{
+						if(size_t(matId) >= m_materials.size())
+							throw std::runtime_error("material id out of bound: " + std::to_string(matId));
+					}
+				}
+			}
+			else throw std::runtime_error("invalid mesh type");
+			m.position.verify();
+			m.lookAt.verify();
 		}
+
+		
 
 		// test that path have no negative times
 		for (const auto& l : m_lights)
@@ -119,9 +179,14 @@ namespace hrsf
 
 		// get directory path from filename
 		const auto directory = absolute(filename).parent_path();
-		const fs::path binaryName = j["scene"].get<std::string>();
 
-		auto bmf = MeshT::loadFromFile(getAbsolutePath(directory, binaryName).string());
+		auto meshNames = j["meshes"].get<std::vector<std::string>>();
+		std::vector<Mesh> meshes;
+		meshes.reserve(meshNames.size());
+		for(auto& file : meshNames)
+		{
+			meshes.emplace_back(loadMesh(directory / file));
+		}
 
 		// load camera etc.
 		auto camera = loadCameraJson(j["camera"], directory);
@@ -130,12 +195,17 @@ namespace hrsf
 		auto lights = loadLightsJson(j["lights"], directory);
 
 		return SceneFormat(
-			std::move(bmf),
+			std::move(meshes),
 			std::move(camera),
 			std::move(lights),
 			std::move(materials),
 			std::move(env)
 		);
+	}
+
+	Mesh SceneFormat::loadMesh(fs::path filename)
+	{
+		return loadMeshJson(openFile(filename), absolute(filename).parent_path());
 	}
 
 	Camera SceneFormat::loadCamera(fs::path filename)
@@ -167,12 +237,36 @@ namespace hrsf
 	{
 		const fs::path binaryName = filename.string() + ".bmf";
 		const fs::path rootDirectory = filename.parent_path();
-		if(components & Component::Mesh)
-			m_mesh.saveToFile(binaryName.string());
-
+		
 		json j;
 		j["version"] = s_version;
-		j["scene"] = binaryName.filename().string();
+
+		if(components & Component::Mesh)
+		{
+			auto arr = json::array();
+
+			// generate "smart" names for meshes
+			std::unordered_map<std::string, size_t> usedSuffixMap;
+			for(const auto& mesh : m_meshes)
+			{
+				auto suffix = generateMeshSuffix(mesh);
+				if(usedSuffixMap.find(suffix) == usedSuffixMap.end())
+				{ 
+					// create new entry
+					usedSuffixMap[suffix] = 0;
+				}
+				size_t id = ++usedSuffixMap[suffix];
+				if (id > 1 || suffix.empty())
+					suffix += std::to_string(id);
+
+				auto meshFilename = fs::path(filename.string() + suffix);
+				saveMesh(meshFilename, mesh);
+
+				arr.push_back(meshFilename.filename().string() + ".json");
+			}
+
+			j["meshes"] = arr;
+		}
 
 		auto mats = getMaterialsJson(m_materials, rootDirectory);;
 		auto lights = getLightsJson(m_lights);
@@ -213,6 +307,11 @@ namespace hrsf
 		saveFile(j, filename);
 	}
 
+	void SceneFormat::saveMesh(const fs::path& filename, const Mesh& mesh)
+	{
+		saveFile(getMeshJson(mesh, filename.parent_path(), fs::absolute(filename.string() + ".bmf")), filename);
+	}
+
 	void SceneFormat::saveCamera(const fs::path& filename, const Camera& camera)
 	{
 		saveFile(getCameraJson(camera), filename);
@@ -236,6 +335,30 @@ namespace hrsf
 	void SceneFormat::savePath(const fs::path& filename, const Path& path)
 	{
 		saveFile(getPathJson(path), filename);
+	}
+
+	SceneFormat::json SceneFormat::getMeshJson(const Mesh& mesh, const fs::path& root, const fs::path& bmfFilename)
+	{
+		json res;
+		if(mesh.type == Mesh::Triangle)
+		{
+			res["type"] = "Triangle";
+			res["file"] = getRelativePath(root, bmfFilename);
+			mesh.triangle.saveToFile(bmfFilename.string());
+		}
+		else if(mesh.type == Mesh::Billboard)
+		{
+			res["type"] = "Billboard";
+			res["file"] = getRelativePath(root, bmfFilename);
+			mesh.triangle.saveToFile(bmfFilename.string());
+		}
+
+		if (!mesh.position.isStatic())
+			res["position"] = getPathJson(mesh.position);
+		if (!mesh.lookAt.isStatic())
+			res["lookAt"] = getPathJson(mesh.lookAt);
+
+		return res;
 	}
 
 	SceneFormat::json SceneFormat::getMaterialsJson(const std::vector<Material>& materials, const fs::path& root)
@@ -415,6 +538,35 @@ namespace hrsf
 		file.close();
 	}
 
+	Mesh SceneFormat::loadMeshJson(const json& j, const fs::path& root)
+	{
+		Mesh m;
+
+		// bmf filename
+		auto mfile = j["file"].get<std::string>();
+		auto meshFilePath = getAbsolutePath(root, mfile);
+
+		// bmf file type
+		auto strType = j["type"].get<std::string>();
+		if (strType == "Triangle")
+		{
+			m.type = Mesh::Triangle;
+			m.triangle.loadFromFile(meshFilePath.string());
+		}
+		else if (strType == "Billboard")
+		{
+			m.type = Mesh::Billboard;
+			m.billboard.loadFromFile(meshFilePath.string());
+		}
+		else throw std::runtime_error("unknown mesh type " + strType);
+
+		// load paths if present
+		m.position = getPathOrDefault(j, "position", root);
+		m.lookAt = getPathOrDefault(j, "lookAt", root);
+
+		return m;
+	}
+
 	Material SceneFormat::loadMaterialJson(const json& j, const fs::path& root)
 	{
 		Material mat;
@@ -572,6 +724,34 @@ namespace hrsf
 		s.time = j["time"].get<float>();
 		s.position = getVec3(j["pos"]);
 		return s;
+	}
+
+	std::string SceneFormat::generateMeshSuffix(const Mesh& mesh) const
+	{
+		std::string suffix;
+		bool isDynamic = !(mesh.position.isStatic() && mesh.lookAt.isStatic());
+		if (isDynamic)
+			suffix += "Moving";
+
+		bool isBillboard = mesh.type == Mesh::Billboard;
+		if(isBillboard)
+		{
+			return suffix + "Points";
+		}
+		
+		bool isTransparent = false;
+		for(const auto& s : mesh.triangle.getShapes())
+		{
+			if (m_materials[s.materialId].data.flags & MaterialData::Transparent)
+			{
+				isTransparent = true; break;
+			}
+		}
+
+		if (isTransparent) 
+			suffix = "Trans" + suffix;
+		
+		return suffix;
 	}
 
 	template <class T>

@@ -27,7 +27,7 @@ TEST(TestSuite, SaveLoad)
 		bmf::Shape{3, 3, 3, 3, /*1, 1,*/ 1}, // shape
 	};
 
-	SceneFormat::MeshT mesh(bmf::Position | bmf::Texcoord0, vertices, indices, shapes);// , { glm::vec3(1.0f), glm::vec3(1.0f) });
+	bmf::BinaryMesh16 mesh(bmf::Position | bmf::Texcoord0, vertices, indices, shapes);// , { glm::vec3(1.0f), glm::vec3(1.0f) });
 	mesh.generateBoundingBoxes();
 	EXPECT_NO_THROW(mesh.verify());
 
@@ -66,7 +66,7 @@ TEST(TestSuite, SaveLoad)
 	env.color = { 0.4f, 0.6f, 1.0f };
 	env.map = "envmap.hdr";
 
-	SceneFormat f(std::move(mesh), cam, lights, materials, env);
+	SceneFormat f({ Mesh(std::move(mesh)) }, cam, lights, materials, env);
 
 	// save file
 	f.save("subfolder/test", useSingleFile);
@@ -102,11 +102,11 @@ TEST(TestSuite, SaveLoad)
 		std::filesystem::absolute(fs::path("subfolder/" + f.getEnvironment().map.string())));
 
 	// test some binary mesh stuff
-	EXPECT_NO_THROW(res.getMesh().verify());
-	EXPECT_EQ(res.getMesh().getAttributes(), f.getMesh().getAttributes());
-	EXPECT_EQ(res.getMesh().getIndices(), f.getMesh().getIndices());
-	EXPECT_EQ(res.getMesh().getVertices(), f.getMesh().getVertices());
-	EXPECT_EQ(res.getMesh().getShapes().size(), f.getMesh().getShapes().size());
+	EXPECT_NO_THROW(res.getMeshes()[0].triangle.verify());
+	EXPECT_EQ(res.getMeshes()[0].triangle.getAttributes(), f.getMeshes()[0].triangle.getAttributes());
+	EXPECT_EQ(res.getMeshes()[0].triangle.getIndices(), f.getMeshes()[0].triangle.getIndices());
+	EXPECT_EQ(res.getMeshes()[0].triangle.getVertices(), f.getMeshes()[0].triangle.getVertices());
+	EXPECT_EQ(res.getMeshes()[0].triangle.getShapes().size(), f.getMeshes()[0].triangle.getShapes().size());
 
 	useSingleFile = !useSingleFile;
 	} while (useSingleFile);
@@ -137,7 +137,7 @@ TEST(TestSuite, UnusedMaterials)
 		bmf::Shape{0, 3, 6, 3, /*2,1,*/3},
 	};
 
-	SceneFormat::MeshT mesh(bmf::Position, vertices, indices, shapes);//, {glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f) });
+	bmf::BinaryMesh16 mesh(bmf::Position, vertices, indices, shapes);//, {glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f) });
 	mesh.generateBoundingBoxes();
 	EXPECT_NO_THROW(mesh.verify());
 
@@ -175,7 +175,7 @@ TEST(TestSuite, UnusedMaterials)
 	Environment env = Environment::Default();
 	env.color = { 0.4f, 0.6f, 1.0f };
 
-	SceneFormat f(std::move(mesh), cam, lights, materials, env);
+	SceneFormat f({ Mesh(std::move(mesh)) }, cam, lights, materials, env);
 
 	EXPECT_NO_THROW(f.verify());
 	f.removeUnusedMaterials();
@@ -187,9 +187,9 @@ TEST(TestSuite, UnusedMaterials)
 	EXPECT_EQ(f.getMaterials()[2].name, std::string("mat3"));
 
 	// new material ids for shapes
-	EXPECT_EQ(f.getMesh().getShapes()[0].materialId, 0);
-	EXPECT_EQ(f.getMesh().getShapes()[1].materialId, 1);
-	EXPECT_EQ(f.getMesh().getShapes()[2].materialId, 2);
+	EXPECT_EQ(f.getMeshes()[0].triangle.getShapes()[0].materialId, 0);
+	EXPECT_EQ(f.getMeshes()[0].triangle.getShapes()[1].materialId, 1);
+	EXPECT_EQ(f.getMeshes()[0].triangle.getShapes()[2].materialId, 2);
 }
 
 TEST(TestSuite, VerifyFail)
@@ -212,7 +212,7 @@ TEST(TestSuite, VerifyFail)
 		bmf::Shape{0, 3, 3, 3, /*1,1,*/1}, // out of bound material
 	};
 
-	SceneFormat::MeshT mesh(bmf::Position, vertices, indices, shapes);// , { glm::vec3(1.0f) , glm::vec3(1.0f) });
+	bmf::BinaryMesh16 mesh(bmf::Position, vertices, indices, shapes);// , { glm::vec3(1.0f) , glm::vec3(1.0f) });
 	mesh.generateBoundingBoxes();
 	EXPECT_NO_THROW(mesh.verify());
 
@@ -230,7 +230,7 @@ TEST(TestSuite, VerifyFail)
 	Environment env = Environment::Default();
 	env.color = { 0.4f, 0.6f, 1.0f };
 
-	SceneFormat f(std::move(mesh), cam, lights, materials, env);
+	SceneFormat f({ Mesh(std::move(mesh)) }, cam, lights, materials, env);
 
 	EXPECT_THROW(f.verify(), std::runtime_error);
 }
