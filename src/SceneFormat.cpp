@@ -729,26 +729,16 @@ namespace hrsf
 	std::string SceneFormat::generateMeshSuffix(const Mesh& mesh) const
 	{
 		std::string suffix;
-		bool isDynamic = !(mesh.position.isStatic() && mesh.lookAt.isStatic());
-		if (isDynamic)
+
+		if (!mesh.isStatic())
 			suffix += "Moving";
 
-		bool isBillboard = mesh.type == Mesh::Billboard;
-		if(isBillboard)
+		if(mesh.type == Mesh::Billboard)
 		{
 			return suffix + "Points";
 		}
-		
-		bool isTransparent = false;
-		for(const auto& s : mesh.triangle.getShapes())
-		{
-			if (m_materials[s.materialId].data.flags & MaterialData::Transparent)
-			{
-				isTransparent = true; break;
-			}
-		}
 
-		if (isTransparent) 
+		if (mesh.isTransparent(m_materials);)
 			suffix = "Trans" + suffix;
 		
 		return suffix;
