@@ -738,7 +738,7 @@ namespace hrsf
 			return suffix + "Points";
 		}
 
-		if (mesh.isTransparent(m_materials);)
+		if (mesh.isTransparent(m_materials))
 			suffix = "Trans" + suffix;
 		
 		return suffix;
