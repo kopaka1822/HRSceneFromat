@@ -58,7 +58,7 @@ namespace hrsf
 			// get spline
 			return getBezierPoint(left, cp1, cp2, right, m_time / m_sections[m_curSection].time);
 		}
-		glm::vec3 getLookAt()
+		glm::vec3 getLookAt() const
 		{
 			if (m_sections.empty()) return glm::vec3(0.0f);
 			if(m_sections.size() == 1)
