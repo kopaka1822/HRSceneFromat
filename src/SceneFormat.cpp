@@ -633,6 +633,7 @@ namespace hrsf
 		cam.data.near = getOrDefault(j, "near", CameraData::Default().near);
 		cam.data.far = getOrDefault(j, "far", CameraData::Default().far);
 		cam.data.up = getOrDefault(j, "up", CameraData::Default().up);
+		cam.data.speed = getOrDefault(j, "speed", 1.0f);
 
 		// paths
 		cam.positionPath = getPathOrDefault(j, "positionPath", root);
