@@ -68,10 +68,10 @@ namespace hrsf
 			}
 
 			// previous point
-			const auto preLeft = getLookAtPoint(int(m_curSection) - 1);
-			const auto left = getLookAtPoint(int(m_curSection));
-			const auto right = getLookAtPoint(int(m_curSection) + 1);
-			const auto postRight = getLookAtPoint(int(m_curSection) + 2);
+			const auto preLeft = getLookAtPoint(int(m_curSection) - 2);
+			const auto left = getLookAtPoint(int(m_curSection) - 1);
+			const auto right = getLookAtPoint(int(m_curSection));
+			const auto postRight = getLookAtPoint(int(m_curSection) + 1);
 
 			// control point 1
 			const auto cp1 = left + (right - preLeft) / 6.0f;
