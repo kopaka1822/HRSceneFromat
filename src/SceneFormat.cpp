@@ -126,6 +126,19 @@ namespace hrsf
 		m_materials = std::move(newMaterials);
 	}
 
+	void SceneFormat::offsetMaterials(uint32_t offset)
+	{
+		if (offset == 0) return;
+		for(auto& m : m_meshes)
+		{
+			if (m.type == Mesh::Billboard)
+				m.billboard.offsetMaterial(offset);
+			else if (m.type == Mesh::Triangle)
+				m.triangle.offsetMaterial(offset);
+			else assert(false);
+		}
+	}
+
 	void SceneFormat::verify() const
 	{
 		// verify mesh

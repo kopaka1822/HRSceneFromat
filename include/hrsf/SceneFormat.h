@@ -42,6 +42,8 @@ namespace hrsf
 		const Environment& getEnvironment() const;
 
 		void removeUnusedMaterials();
+		// adds the offset to each material index
+		void offsetMaterials(uint32_t offset);
 		/// \brief throws an exception if something seems wrong
 		void verify() const;
 
