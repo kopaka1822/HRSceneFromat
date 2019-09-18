@@ -46,10 +46,10 @@ namespace hrsf
 			}
 			// spline interpolation
 			// previous point
-			const auto preLeft = getPoint(m_curSection - 1);
-			const auto left = getPoint(m_curSection);
-			const auto right = getPoint(m_curSection + 1);
-			const auto postRight = getPoint(m_curSection + 2);
+			const auto preLeft = getPoint(int(m_curSection) - 1);
+			const auto left = getPoint(int(m_curSection));
+			const auto right = getPoint(int(m_curSection) + 1);
+			const auto postRight = getPoint(int(m_curSection) + 2);
 
 			// control point 1
 			const auto cp1 = left + (right - preLeft) / 6.0f;
@@ -68,10 +68,10 @@ namespace hrsf
 			}
 
 			// previous point
-			const auto preLeft = getPoint(m_curSection - 1);
-			const auto left = getPoint(m_curSection);
-			const auto right = getPoint(m_curSection + 1);
-			const auto postRight = getPoint(m_curSection + 2);
+			const auto preLeft = getLookAtPoint(int(m_curSection) - 1);
+			const auto left = getLookAtPoint(int(m_curSection));
+			const auto right = getLookAtPoint(int(m_curSection) + 1);
+			const auto postRight = getLookAtPoint(int(m_curSection) + 2);
 
 			// control point 1
 			const auto cp1 = left + (right - preLeft) / 6.0f;
@@ -103,26 +103,29 @@ namespace hrsf
 		}
 	private:
 		// returns path anchor point (there is one more point the section because paths always start at vec3(0))
-		glm::vec3 getPoint(size_t index) const
+		glm::vec3 getPoint(int index) const
 		{
 			if(m_isCircle)
 			{
-				// repeat points
-				size_t i = index % (m_sections.size() + 1);
-				if (i == 0) return glm::vec3(0.0f);
-				return m_sections[i - 1].position * m_scale;
+				index -= 1;
+				while (index < 0) index += int(m_sections.size());
+
+				// repeat points (its a circle, so 0 is already included)
+				size_t i = size_t(index) % (m_sections.size());
+				return m_sections[i].position * m_scale;
 			}
 			else
 			{
 				// clamp start and end points
-				if (int(index) <= 0) return glm::vec3(0.0f);
-				return m_sections[std::min(index, m_sections.size() - 1)].position * m_scale;
+				if (index <= 0) return glm::vec3(0.0f);
+				return m_sections[std::min(size_t(index), m_sections.size() - 1)].position * m_scale;
 			}
 		}
-		glm::vec3 getLookAtPoint(size_t index)
+		glm::vec3 getLookAtPoint(int index) const
 		{
+			while (index < 0) index += int(m_sections.size());
 			// look at points are always in circle
-			size_t i = index % (m_sections.size());
+			size_t i = size_t(index) % (m_sections.size());
 			return m_sections[i].position * m_scale;
 		}
 
