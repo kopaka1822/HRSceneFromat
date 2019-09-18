@@ -58,6 +58,28 @@ namespace hrsf
 			// get spline
 			return getBezierPoint(left, cp1, cp2, right, m_time / m_sections[m_curSection].time);
 		}
+		glm::vec3 getLookAt()
+		{
+			if (m_sections.empty()) return glm::vec3(0.0f);
+			if(m_sections.size() == 1)
+			{
+				// only look at one position
+				return m_sections.front().position;
+			}
+
+			// previous point
+			const auto preLeft = getPoint(m_curSection - 1);
+			const auto left = getPoint(m_curSection);
+			const auto right = getPoint(m_curSection + 1);
+			const auto postRight = getPoint(m_curSection + 2);
+
+			// control point 1
+			const auto cp1 = left + (right - preLeft) / 6.0f;
+			const auto cp2 = right + (left - postRight) / 6.0f;
+
+			// get spline
+			return getBezierPoint(left, cp1, cp2, right, m_time / m_sections[m_curSection].time);
+		}
 		const std::vector<PathSection>& getSections() const
 		{
 			return m_sections;
@@ -96,8 +118,14 @@ namespace hrsf
 				if (int(index) <= 0) return glm::vec3(0.0f);
 				return m_sections[std::min(index, m_sections.size() - 1)].position * m_scale;
 			}
-			
 		}
+		glm::vec3 getLookAtPoint(size_t index)
+		{
+			// look at points are always in circle
+			size_t i = index % (m_sections.size());
+			return m_sections[i].position * m_scale;
+		}
+
 		static glm::vec3 getBezierPoint(const glm::vec3& left, const glm::vec3& cp1, const glm::vec3& cp2, const glm::vec3& right, float t)
 		{
 			assert(t >= 0.0f);
