@@ -12,6 +12,27 @@ namespace hrsf
 		glm::vec3 position;
 	};
 
+	/// describes the path an object takes.
+	/// 
+	/// For position paths (getPosition()):
+	/// example:
+	/// { "sections": [
+	///	{"time": 4, "pos" : [1.0, 0.0, 0.0] }
+	/// ]}
+	/// The path (always) starts at [0, 0, 0].
+	/// After 4 seconds, the path will arrive at [1.0, 0.0, 0.0]
+	/// It will then reset back to [0, 0, 0] (if there is now next section)
+	/// If the underlying component has a position and a positionPath attribute,
+	/// the actual position should be: position + positionPath.getPosition();
+	///
+	/// For lookAt paths (getLookAt()):
+	/// If the path contains only one element, the lookAt
+	/// will be fixed to that position.
+	/// Otherwise, the starting look at will be the "pos" of the last section.
+	/// After "time" of the first section, the lookAt will be "pos" of the first section
+	/// The lookAt will always go around in a circle between all sections.
+	/// The lookAt should be relative to the origin ([0.0, 0.0, 0.0]).
+	/// The actual lookAt should be computed by: position + lookAt.getLookAt(); and direction should be ignored
 	class Path
 	{
 	public:
