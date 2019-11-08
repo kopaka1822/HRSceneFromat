@@ -22,7 +22,7 @@ namespace hrsf
 
 	inline constexpr float fromSrgb(float value)
 	{
-		if (value >= 1.0f) return 1.0f;
+		//if (value >= 1.0f) return 1.0f;
 		if (value <= 0.0f) return 0.0f;
 		if (value <= 0.04045f) return value / 12.92f;
 		return pow((value + 0.055f) / 1.055f, 2.4f);
