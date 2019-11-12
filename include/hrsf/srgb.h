@@ -6,7 +6,7 @@ namespace hrsf
 {
 	inline constexpr float toSrgb(float value)
 	{
-		if (value >= 1.0f) return 1.0f;
+		//if (value >= 1.0f) return 1.0f;
 		if (value <= 0.0) return 0.0f;
 		if (value <= 0.0031308f) return 12.92f * value;
 		return 1.055f * std::pow(value, 0.41666f) - 0.055f;

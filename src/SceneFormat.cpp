@@ -383,10 +383,8 @@ namespace hrsf
 			j["name"] = m.name;
 
 			// textures
-			if (!m.textures.diffuse.empty())
-				j["diffuseTex"] = getRelativePath(root, m.textures.diffuse);
-			if (!m.textures.ambient.empty())
-				j["ambientTex"] = getRelativePath(root, m.textures.ambient);
+			if (!m.textures.albedo.empty())
+				j["diffuseTex"] = getRelativePath(root, m.textures.albedo);
 			if (!m.textures.specular.empty())
 				j["specularTex"] = getRelativePath(root, m.textures.specular);
 			if (!m.textures.occlusion.empty())
@@ -394,25 +392,21 @@ namespace hrsf
 
 			// data
 			// always write diffuse
-			writeVec3(j["diffuse"], toSrgb(m.data.diffuse));
-			if (m.data.ambient != MaterialData::Default().ambient)
-				writeVec3(j["ambient"], toSrgb(m.data.ambient));
+			writeVec3(j["albedo"], toSrgb(m.data.albedo));
 			if (m.data.roughness != MaterialData::Default().roughness)
 				j["roughness"] = m.data.roughness;
 			if (m.data.occlusion != MaterialData::Default().occlusion)
 				j["occlusion"] = m.data.occlusion;
 			if (m.data.specular != MaterialData::Default().specular)
-				writeVec3(j["specular"], toSrgb(m.data.specular));
-			if (m.data.gloss != MaterialData::Default().gloss)
-				j["gloss"] = m.data.gloss;
-			if (m.data.emission != toSrgb(MaterialData::Default().emission))
-				writeVec3(j["emission"], m.data.emission);
+				j["specular"] = m.data.specular;
+			if (m.data.metalness != MaterialData::Default().metalness)
+				j["metalness"] = m.data.metalness;
+			if (toSrgb(m.data.emission) != MaterialData::Default().emission)
+				writeVec3(j["emission"], toSrgb(m.data.emission));
+			if (toSrgb(m.data.translucency) != MaterialData::Default().translucency)
+				writeVec3(j["translucency"], toSrgb(m.data.translucency));
 
 			// write flags as booleans
-			const bool reflection = (m.data.flags & MaterialData::Reflection) != 0;
-			if (((MaterialData::Default().flags & MaterialData::Reflection) != 0) != reflection)
-				j["reflection"] = reflection;
-
 			const bool transparent = (m.data.flags & MaterialData::Transparent) != 0;
 			if (((MaterialData::Default().flags & MaterialData::Transparent) != 0) != transparent)
 				j["transparent"] = transparent;
@@ -586,25 +580,19 @@ namespace hrsf
 		mat.name = j["name"].get<std::string>();
 
 		// textures
-		mat.textures.diffuse = getFilename(j, "diffuseTex", root);
-		mat.textures.ambient = getFilename(j, "ambientTex", root);
+		mat.textures.albedo = getFilename(j, "albedoTex", root);
 		mat.textures.specular = getFilename(j, "specularTex", root);
 		mat.textures.occlusion = getFilename(j, "occlusionTex", root);
 
 		// data
-		mat.data.ambient = fromSrgb(getOrDefault(j, "ambient", MaterialData::Default().ambient));
-		mat.data.diffuse = fromSrgb(getVec3(j["diffuse"]));
+		mat.data.albedo = fromSrgb(getVec3(j["albedo"]));
 		mat.data.roughness = getOrDefault(j, "roughness", MaterialData::Default().roughness);
 		mat.data.occlusion = getOrDefault(j, "occlusion", MaterialData::Default().occlusion);
-		mat.data.specular = fromSrgb(getOrDefault(j, "specular", MaterialData::Default().specular));
-		mat.data.gloss = getOrDefault(j, "gloss", MaterialData::Default().gloss);
+		mat.data.specular = getOrDefault(j, "specular", MaterialData::Default().specular);
 		mat.data.emission = fromSrgb(getOrDefault(j, "emission", MaterialData::Default().emission));
-
+		mat.data.metalness = getOrDefault(j, "metalness", 0.0f);
+		mat.data.translucency = fromSrgb(getOrDefault(j, "translucency", glm::vec3(0.0f)));
 		mat.data.flags = 0;
-
-		// reflection?
-		if (getOrDefault(j, "reflection", (MaterialData::Default().flags & MaterialData::Reflection) != 0))
-			mat.data.flags |= MaterialData::Reflection;
 
 		if (getOrDefault(j, "transparent", (MaterialData::Default().flags & MaterialData::Transparent) != 0))
 			mat.data.flags |= MaterialData::Transparent;

@@ -124,7 +124,7 @@ namespace hrsf
 		std::vector<Material> m_materials;
 		Environment m_environment;
 
-		static constexpr size_t s_version = 5;
+		static constexpr size_t s_version = 6;
 	};
 
 	inline Component operator|(Component a, Component b)
