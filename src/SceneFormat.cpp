@@ -392,7 +392,8 @@ namespace hrsf
 
 			// data
 			// always write diffuse
-			writeVec3(j["albedo"], toSrgb(m.data.albedo));
+			if(toSrgb(m.data.albedo) != MaterialData::Default().albedo)
+				writeVec3(j["albedo"], toSrgb(m.data.albedo));
 			if (m.data.roughness != MaterialData::Default().roughness)
 				j["roughness"] = m.data.roughness;
 			if (m.data.occlusion != MaterialData::Default().occlusion)
@@ -585,7 +586,7 @@ namespace hrsf
 		mat.textures.occlusion = getFilename(j, "occlusionTex", root);
 
 		// data
-		mat.data.albedo = fromSrgb(getVec3(j["albedo"]));
+		mat.data.albedo = fromSrgb(getOrDefault(j, "albedo", MaterialData::Default().albedo));
 		mat.data.roughness = getOrDefault(j, "roughness", MaterialData::Default().roughness);
 		mat.data.occlusion = getOrDefault(j, "occlusion", MaterialData::Default().occlusion);
 		mat.data.specular = getOrDefault(j, "specular", MaterialData::Default().specular);
