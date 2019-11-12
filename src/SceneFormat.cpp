@@ -384,7 +384,7 @@ namespace hrsf
 
 			// textures
 			if (!m.textures.albedo.empty())
-				j["diffuseTex"] = getRelativePath(root, m.textures.albedo);
+				j["albedoTex"] = getRelativePath(root, m.textures.albedo);
 			if (!m.textures.specular.empty())
 				j["specularTex"] = getRelativePath(root, m.textures.specular);
 			if (!m.textures.occlusion.empty())
