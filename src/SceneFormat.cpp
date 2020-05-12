@@ -405,7 +405,7 @@ namespace hrsf
 			if (toSrgb(m.data.emission) != MaterialData::Default().emission)
 				writeVec3(j["emission"], toSrgb(m.data.emission));
 			if (toSrgb(m.data.translucency) != MaterialData::Default().translucency)
-				writeVec3(j["translucency"], toSrgb(m.data.translucency));
+				j["translucency"] = m.data.translucency;
 
 			// write flags as booleans
 			const bool transparent = (m.data.flags & MaterialData::Transparent) != 0;
@@ -540,7 +540,7 @@ namespace hrsf
 		filename = filename.replace_extension(".json");
 		std::ofstream file(filename);
 		if (!file.is_open())
-			throw std::runtime_error("could not open " + filename.string());
+			throw std::runtime_error("could not save " + filename.string());
 
 		file << j.dump(3);
 		file.close();
@@ -592,7 +592,7 @@ namespace hrsf
 		mat.data.specular = getOrDefault(j, "specular", MaterialData::Default().specular);
 		mat.data.emission = fromSrgb(getOrDefault(j, "emission", MaterialData::Default().emission));
 		mat.data.metalness = getOrDefault(j, "metalness", 0.0f);
-		mat.data.translucency = fromSrgb(getOrDefault(j, "translucency", glm::vec3(0.0f)));
+		mat.data.translucency = getOrDefault(j, "translucency", 0.0f);
 		mat.data.flags = 0;
 
 		if (getOrDefault(j, "transparent", (MaterialData::Default().flags & MaterialData::Transparent) != 0))

@@ -28,7 +28,7 @@ TEST(TestSuite, SaveLoad)
 	};
 
 	bmf::BinaryMesh16 mesh(bmf::Position | bmf::Texcoord0, vertices, indices, shapes);// , { glm::vec3(1.0f), glm::vec3(1.0f) });
-	mesh.generateBoundingBoxes();
+	mesh.generateBoundingVolumes();
 	EXPECT_NO_THROW(mesh.verify());
 
 	Camera cam;
@@ -58,9 +58,9 @@ TEST(TestSuite, SaveLoad)
 	materials.emplace_back();
 	materials.back().name = "spec";
 	materials.back().data = MaterialData::Default();
-	materials.back().textures.diffuse = "myTexture"; // save relative path
-	materials.back().data.flags = MaterialData::Reflection;
-	materials.back().data.specular = { 1.0f, 0.0f, 1.0f };
+	materials.back().textures.albedo = "myTexture"; // save relative path
+	materials.back().data.flags = MaterialData::None;
+	materials.back().data.specular = 1.0f;
 	
 	Environment env = Environment::Default();
 	env.color = { 0.4f, 0.6f, 1.0f };
@@ -69,11 +69,11 @@ TEST(TestSuite, SaveLoad)
 	SceneFormat f({ Mesh(std::move(mesh)) }, cam, lights, materials, env);
 
 	// save file
-	f.save("subfolder/test", useSingleFile);
+	f.save("test", useSingleFile);
 
 	// load file 
 	SceneFormat res;
-	ASSERT_NO_THROW(res = SceneFormat::load("subfolder/test"));
+	ASSERT_NO_THROW(res = SceneFormat::load("test"));
 
 	// test some material properties
 	EXPECT_EQ(res.getMaterials().size(), f.getMaterials().size());
@@ -81,9 +81,9 @@ TEST(TestSuite, SaveLoad)
 	EXPECT_EQ(res.getMaterials()[1].name, f.getMaterials()[1].name);
 
 	// expect absolute path for texture
-	EXPECT_EQ(res.getMaterials()[1].textures.diffuse, 
-		std::filesystem::absolute(fs::path("subfolder/" + f.getMaterials()[1].textures.diffuse.string())));
-	EXPECT_VEC3_EQUAL(res.getMaterials()[1].data.specular, f.getMaterials()[1].data.specular);
+	EXPECT_EQ(res.getMaterials()[1].textures.albedo, 
+		std::filesystem::absolute(fs::path("subfolder/" + f.getMaterials()[1].textures.albedo.string())));
+	EXPECT_EQ(res.getMaterials()[1].data.specular, f.getMaterials()[1].data.specular);
 	EXPECT_EQ(res.getMaterials()[1].data.flags, f.getMaterials()[1].data.flags);
 
 	// test some camera stuff
@@ -138,7 +138,7 @@ TEST(TestSuite, UnusedMaterials)
 	};
 
 	bmf::BinaryMesh16 mesh(bmf::Position, vertices, indices, shapes);//, {glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f) });
-	mesh.generateBoundingBoxes();
+	mesh.generateBoundingVolumes();
 	EXPECT_NO_THROW(mesh.verify());
 
 	Camera cam;
@@ -213,7 +213,7 @@ TEST(TestSuite, VerifyFail)
 	};
 
 	bmf::BinaryMesh16 mesh(bmf::Position, vertices, indices, shapes);// , { glm::vec3(1.0f) , glm::vec3(1.0f) });
-	mesh.generateBoundingBoxes();
+	mesh.generateBoundingVolumes();
 	EXPECT_NO_THROW(mesh.verify());
 
 	Camera cam;

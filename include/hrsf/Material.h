@@ -24,14 +24,13 @@ namespace hrsf
 		};
 
 		glm::vec3 albedo;
-		float occlusion;
-		glm::vec3 translucency;
-		float specular; // intensity
+		float occlusion; // coverage of the material
 		glm::vec3 emission;
 		float metalness;
 		float roughness;
 		int flags; // bitflags from Flags enum
-		glm::vec2 padding;
+		float translucency; // amount of light that is transmitted through the object
+		float specular; // reflective intensity
 
 		static const MaterialData& Default()
 		{
@@ -39,12 +38,11 @@ namespace hrsf
 				{1.0f, 1.0f, 1.0f},
 				1.0f,
 				{0.0f, 0.0f, 0.0f},
-				0.1f,
-				{0.0f, 0.0f, 0.0f},
 				0.0f,
 				1.0f,
 				None,
-			{0.0f, 0.0f}
+				0.0f,
+				0.1f
 				};
 			return d;
 		};
