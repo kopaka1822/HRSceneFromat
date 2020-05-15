@@ -21,6 +21,11 @@ namespace hrsf
 		{
 			None = 0,
 			Transparent = 1,
+			// indicates that the surfaces that use this materials have a front and a back side that can be identified through the surface normal
+			// => glass would be modeled like this:
+			//   n <-|     |-> n (n is the normal of the surface | )
+			// reflections will then only occur when entering the volume
+			VolumeNormals = 2,
 		};
 
 		glm::vec3 albedo;

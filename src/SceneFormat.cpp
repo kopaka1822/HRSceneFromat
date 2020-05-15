@@ -412,6 +412,10 @@ namespace hrsf
 			if (((MaterialData::Default().flags & MaterialData::Transparent) != 0) != transparent)
 				j["transparent"] = transparent;
 
+			const bool volumeNormal = (m.data.flags & MaterialData::VolumeNormals) != 0;
+			if (((MaterialData::Default().flags & MaterialData::VolumeNormals) != 0) != volumeNormal)
+				j["volumeNormals"] = volumeNormal;
+			
 			res.push_back(std::move(j));
 		}
 		return res;
@@ -598,6 +602,9 @@ namespace hrsf
 		if (getOrDefault(j, "transparent", (MaterialData::Default().flags & MaterialData::Transparent) != 0))
 			mat.data.flags |= MaterialData::Transparent;
 
+		if (getOrDefault(j, "volumeNormals", (MaterialData::Default().flags & MaterialData::VolumeNormals) != 0))
+			mat.data.flags |= MaterialData::VolumeNormals;
+		
 		return mat;
 	}
 
