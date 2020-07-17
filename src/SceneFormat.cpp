@@ -388,8 +388,8 @@ namespace hrsf
 				j["albedoTex"] = getRelativePath(root, m.textures.albedo);
 			if (!m.textures.specular.empty())
 				j["specularTex"] = getRelativePath(root, m.textures.specular);
-			if (!m.textures.occlusion.empty())
-				j["occlusionTex"] = getRelativePath(root, m.textures.occlusion);
+			if (!m.textures.coverage.empty())
+				j["coverageTex"] = getRelativePath(root, m.textures.coverage);
 
 			// data
 			// always write diffuse
@@ -397,8 +397,8 @@ namespace hrsf
 				writeVec3(j["albedo"], toSrgb(m.data.albedo));
 			if (m.data.roughness != MaterialData::Default().roughness)
 				j["roughness"] = m.data.roughness;
-			if (m.data.occlusion != MaterialData::Default().occlusion)
-				j["occlusion"] = m.data.occlusion;
+			if (m.data.coverage != MaterialData::Default().coverage)
+				j["coverage"] = m.data.coverage;
 			if (m.data.specular != MaterialData::Default().specular)
 				j["specular"] = m.data.specular;
 			if (m.data.metalness != MaterialData::Default().metalness)
@@ -407,15 +407,25 @@ namespace hrsf
 				writeVec3(j["emission"], toSrgb(m.data.emission));
 			if (toSrgb(m.data.translucency) != MaterialData::Default().translucency)
 				j["translucency"] = m.data.translucency;
+			if (m.data.ior != MaterialData::Default().ior)
+				j["ior"] = m.data.ior;
 
 			// write flags as booleans
 			const bool transparent = (m.data.flags & MaterialData::Transparent) != 0;
 			if (((MaterialData::Default().flags & MaterialData::Transparent) != 0) != transparent)
 				j["transparent"] = transparent;
 
-			const bool volumeNormal = (m.data.flags & MaterialData::VolumeNormals) != 0;
-			if (((MaterialData::Default().flags & MaterialData::VolumeNormals) != 0) != volumeNormal)
-				j["volumeNormals"] = volumeNormal;
+			const bool volume = (m.data.flags & MaterialData::Volume) != 0;
+			if (((MaterialData::Default().flags & MaterialData::Volume) != 0) != volume)
+				j["volume"] = volume;
+
+			const bool ignoreNormal = (m.data.flags & MaterialData::IgnoreNormals) != 0;
+			if (((MaterialData::Default().flags & MaterialData::IgnoreNormals) != 0) != volume)
+				j["ignore-normals"] = ignoreNormal;
+
+			const bool yorientation = (m.data.flags & MaterialData::YOrientation) != 0;
+			if (((MaterialData::Default().flags & MaterialData::YOrientation) != 0) != yorientation)
+				j["y-aligned"] = yorientation;
 			
 			res.push_back(std::move(j));
 		}
@@ -588,24 +598,31 @@ namespace hrsf
 		// textures
 		mat.textures.albedo = getFilename(j, "albedoTex", root);
 		mat.textures.specular = getFilename(j, "specularTex", root);
-		mat.textures.occlusion = getFilename(j, "occlusionTex", root);
+		mat.textures.coverage = getFilename(j, "coverageTex", root);
 
 		// data
 		mat.data.albedo = fromSrgb(getOrDefault(j, "albedo", MaterialData::Default().albedo));
 		mat.data.roughness = getOrDefault(j, "roughness", MaterialData::Default().roughness);
-		mat.data.occlusion = getOrDefault(j, "occlusion", MaterialData::Default().occlusion);
+		mat.data.coverage = getOrDefault(j, "coverage", MaterialData::Default().coverage);
 		mat.data.specular = getOrDefault(j, "specular", MaterialData::Default().specular);
 		mat.data.emission = fromSrgb(getOrDefault(j, "emission", MaterialData::Default().emission));
 		mat.data.metalness = getOrDefault(j, "metalness", 0.0f);
 		mat.data.translucency = getOrDefault(j, "translucency", 0.0f);
+		mat.data.ior = getOrDefault(j, "ior", 1.0f);
 		mat.data.flags = 0;
 
 		if (getOrDefault(j, "transparent", (MaterialData::Default().flags & MaterialData::Transparent) != 0))
 			mat.data.flags |= MaterialData::Transparent;
 
-		if (getOrDefault(j, "volumeNormals", (MaterialData::Default().flags & MaterialData::VolumeNormals) != 0))
-			mat.data.flags |= MaterialData::VolumeNormals;
-		
+		if (getOrDefault(j, "volume", (MaterialData::Default().flags & MaterialData::Volume) != 0))
+			mat.data.flags |= MaterialData::Volume;
+
+		if (getOrDefault(j, "ignore-normals", (MaterialData::Default().flags & MaterialData::IgnoreNormals) != 0))
+			mat.data.flags |= MaterialData::IgnoreNormals;
+
+		if (getOrDefault(j, "y-aligned", (MaterialData::Default().flags & MaterialData::YOrientation) != 0))
+			mat.data.flags |= MaterialData::YOrientation;
+
 		return mat;
 	}
 

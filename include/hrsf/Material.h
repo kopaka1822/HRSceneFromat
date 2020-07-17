@@ -10,7 +10,7 @@ namespace hrsf
 	{
 		std::filesystem::path albedo;
 		std::filesystem::path specular;
-		std::filesystem::path occlusion; // extra map if transparency was not stored in diffuse map
+		std::filesystem::path coverage; // extra map if transparency was not stored in diffuse map
 	};
 
 	// material data that is aligned to 16 byte for the graphics card
@@ -21,21 +21,32 @@ namespace hrsf
 		{
 			None = 0,
 			Transparent = 1,
-			// indicates that the surfaces that use this materials have a front and a back side that can be identified through the surface normal
-			// => glass would be modeled like this:
-			//   n <-|     |-> n (n is the normal of the surface | )
-			// reflections will then only occur when entering the volume
-			VolumeNormals = 2,
+
+			// surface describes a volume:
+			// the insides are described through the normals:
+			// *outside* n <-| *inside* |-> n (n is the normal of the surface | )
+			Volume = 1 << 1,
+
+			// indicates that this surface has no normals (likely because it is volumetric)
+			IgnoreNormals = 1 << 2,
+			
+			// indicates y-axis orientation for billboards
+			YOrientation =  1 << 3, 
 		};
 
 		glm::vec3 albedo;
-		float occlusion; // coverage of the material
+		float coverage; // coverage of the material
+
 		glm::vec3 emission;
 		float metalness;
+
 		float roughness;
 		int flags; // bitflags from Flags enum
 		float translucency; // amount of light that is transmitted through the object
 		float specular; // reflective intensity
+
+		float ior; // index of refraction
+		glm::vec3 padding; // padding for 16byte shader alignment
 
 		static const MaterialData& Default()
 		{
@@ -47,8 +58,10 @@ namespace hrsf
 				1.0f,
 				None,
 				0.0f,
-				0.1f
-				};
+				0.1f,
+				1.0f,
+				{0.0f, 0.0f, 0.0f}
+			};
 			return d;
 		};
 	};

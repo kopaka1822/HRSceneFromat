@@ -59,7 +59,7 @@ TEST(TestSuite, SaveLoad)
 	materials.back().name = "spec";
 	materials.back().data = MaterialData::Default();
 	materials.back().textures.albedo = "myTexture"; // save relative path
-	materials.back().data.flags = MaterialData::None;
+	materials.back().data.flags = MaterialData::Flags::Volume;
 	materials.back().data.specular = 1.0f;
 	
 	Environment env = Environment::Default();
