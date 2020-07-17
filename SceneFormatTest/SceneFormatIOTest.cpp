@@ -73,7 +73,14 @@ TEST(TestSuite, SaveLoad)
 
 	// load file 
 	SceneFormat res;
-	ASSERT_NO_THROW(res = SceneFormat::load("test"));
+	try
+	{
+		res = SceneFormat::load("test");
+	}
+	catch (const std::exception& e)
+	{
+		ASSERT_STREQ("", e.what());
+	}
 
 	// test some material properties
 	EXPECT_EQ(res.getMaterials().size(), f.getMaterials().size());
@@ -81,8 +88,7 @@ TEST(TestSuite, SaveLoad)
 	EXPECT_EQ(res.getMaterials()[1].name, f.getMaterials()[1].name);
 
 	// expect absolute path for texture
-	EXPECT_EQ(res.getMaterials()[1].textures.albedo, 
-		std::filesystem::absolute(fs::path("subfolder/" + f.getMaterials()[1].textures.albedo.string())));
+	EXPECT_EQ(res.getMaterials()[1].textures.albedo, fs::absolute(f.getMaterials()[1].textures.albedo.string()));
 	EXPECT_EQ(res.getMaterials()[1].data.specular, f.getMaterials()[1].data.specular);
 	EXPECT_EQ(res.getMaterials()[1].data.flags, f.getMaterials()[1].data.flags);
 
@@ -98,8 +104,7 @@ TEST(TestSuite, SaveLoad)
 
 	// test some env stuff
 	EXPECT_VEC3_EQUAL(res.getEnvironment().color, f.getEnvironment().color);
-	EXPECT_EQ(res.getEnvironment().map, 
-		std::filesystem::absolute(fs::path("subfolder/" + f.getEnvironment().map.string())));
+	EXPECT_EQ(res.getEnvironment().map, std::filesystem::absolute(f.getEnvironment().map.string()));
 
 	// test some binary mesh stuff
 	EXPECT_NO_THROW(res.getMeshes()[0].triangle.verify());
