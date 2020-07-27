@@ -364,7 +364,7 @@ namespace hrsf
 		{
 			res["type"] = "Billboard";
 			res["file"] = getRelativePath(root, bmfFilename);
-			mesh.triangle.saveToFile(bmfFilename.string());
+			mesh.billboard.saveToFile(bmfFilename.string());
 		}
 
 		if (!mesh.position.isStatic())
