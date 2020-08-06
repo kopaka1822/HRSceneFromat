@@ -32,6 +32,9 @@ namespace hrsf
 			
 			// indicates y-axis orientation for billboards
 			YOrientation =  1 << 3, 
+			
+			// indicates that the texture sampler should clamp instead of wrap
+			TextureClamp = 1 << 4
 		};
 
 		glm::vec3 albedo;

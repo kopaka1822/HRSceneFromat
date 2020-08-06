@@ -426,6 +426,10 @@ namespace hrsf
 			const bool yorientation = (m.data.flags & MaterialData::YOrientation) != 0;
 			if (((MaterialData::Default().flags & MaterialData::YOrientation) != 0) != yorientation)
 				j["y-aligned"] = yorientation;
+
+			const bool texclamp = (m.data.flags & MaterialData::TextureClamp) != 0;
+			if (((MaterialData::Default().flags & MaterialData::TextureClamp) != 0) != texclamp)
+				j["texture-clamp"] = texclamp;
 			
 			res.push_back(std::move(j));
 		}
@@ -622,6 +626,9 @@ namespace hrsf
 
 		if (getOrDefault(j, "y-aligned", (MaterialData::Default().flags & MaterialData::YOrientation) != 0))
 			mat.data.flags |= MaterialData::YOrientation;
+
+		if (getOrDefault(j, "texture-clamp", (MaterialData::Default().flags & MaterialData::TextureClamp) != 0))
+			mat.data.flags |= MaterialData::TextureClamp;
 
 		return mat;
 	}
