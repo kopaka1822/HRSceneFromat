@@ -34,7 +34,11 @@ namespace hrsf
 			YOrientation =  1 << 3, 
 			
 			// indicates that the texture sampler should clamp instead of wrap
-			TextureClamp = 1 << 4
+			TextureClamp = 1 << 4,
+
+			// indicates that the texture is only relevant in the spherical region around the center
+			// (important for billboard intersections and bounding box)
+			TextureSpherical = 1 << 5
 		};
 
 		glm::vec3 albedo;

@@ -430,6 +430,10 @@ namespace hrsf
 			const bool texclamp = (m.data.flags & MaterialData::TextureClamp) != 0;
 			if (((MaterialData::Default().flags & MaterialData::TextureClamp) != 0) != texclamp)
 				j["texture-clamp"] = texclamp;
+
+			const bool texSpherical = (m.data.flags & MaterialData::TextureSpherical) != 0;
+			if (((MaterialData::Default().flags & MaterialData::TextureSpherical) != 0) != texSpherical)
+				j["texture-spherical"] = texSpherical;
 			
 			res.push_back(std::move(j));
 		}
@@ -629,6 +633,9 @@ namespace hrsf
 
 		if (getOrDefault(j, "texture-clamp", (MaterialData::Default().flags & MaterialData::TextureClamp) != 0))
 			mat.data.flags |= MaterialData::TextureClamp;
+
+		if (getOrDefault(j, "texture-spherical", (MaterialData::Default().flags & MaterialData::TextureSpherical) != 0))
+			mat.data.flags |= MaterialData::TextureSpherical;
 
 		return mat;
 	}
